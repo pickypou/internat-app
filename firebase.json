@@ -1,1 +1,37 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"internat-app","appId":"1:134533631181:android:4899f094337ab1204d2d84","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"internat-app","configurations":{"android":"1:134533631181:android:4899f094337ab1204d2d84","ios":"1:134533631181:ios:9eef610c2cb861154d2d84","web":"1:134533631181:web:d4e7d836b5556eca4d2d84"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "internat-app",
+          "appId": "1:134533631181:android:4899f094337ab1204d2d84",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "internat-app",
+          "configurations": {
+            "android": "1:134533631181:android:4899f094337ab1204d2d84",
+            "ios": "1:134533631181:ios:9eef610c2cb861154d2d84",
+            "web": "1:134533631181:web:d4e7d836b5556eca4d2d84"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
