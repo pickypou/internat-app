@@ -19,7 +19,7 @@ class GroupTheme {
   ];
 
   /// Parses a hex color string like "#FFFFFF" or "FFFFFF" to a Color object.
-  static Color _colorFromHex(String hexColor) {
+  static Color colorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
       hexColor = 'FF$hexColor'; // Add full opacity by default
@@ -34,7 +34,7 @@ class GroupTheme {
 
   /// Returns a decoration for a group card or container
   static BoxDecoration getGroupDecoration(String hexColor) {
-    final color = _colorFromHex(hexColor);
+    final color = colorFromHex(hexColor);
     return BoxDecoration(
       color: color.withValues(alpha: 0.15),
       border: Border.all(color: color, width: 2),
@@ -44,7 +44,7 @@ class GroupTheme {
 
   /// Returns a button style based on a group's derived color
   static ButtonStyle getGroupButtonStyle(String hexColor) {
-    final color = _colorFromHex(hexColor);
+    final color = colorFromHex(hexColor);
     return ElevatedButton.styleFrom(
       backgroundColor: color.withValues(alpha: 0.15),
       foregroundColor: color, // Text color

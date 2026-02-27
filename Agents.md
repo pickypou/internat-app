@@ -1,55 +1,86 @@
-Agents.md - Règles du Projet InternatApp
+Agents.md - Règles du Projet InternatApp (Version Finale)
 1. Architecture & Structure (FSD + Clean Arch)
-L'application doit suivre strictement le découpage Feature-Sliced Design.
+L'application doit suivre strictement le découpage Feature-Sliced Design (FSD). Chaque feature doit être autonome et découplée.
 
-Layers :
+1.2. Anatomie d'une Feature (FSD + Clean Arch)
+Chaque dossier dans src/features/[name]/ doit suivre cette structure :
 
-app : Configuration globale (bloc_observer, theme, routing).
+domain/ : Le cœur de la feature (Indépendant de tout).
 
-processes : (Optionnel) Logique complexe inter-features.
+entities/ : Modèles de données métier.
 
-pages : Composition des features pour former des écrans.
+failures/ : Gestion des erreurs métier.
 
-features : Logique métier concrète (ex: attendance_flow, group_selection).
+repositories/ : Interfaces (abstract classes) des dépôts.
 
-entities : Modèles de données métier et logique de base (ex: Student, Attendance).
+usecases/ : Logique métier spécifique (une classe par action).
 
-shared : Composants réutilisables, clients API (Supabase), utils.
+data/ : L'implémentation technique.
 
-2. State Management (Bloc Pattern)
-Utiliser uniquement la librairie flutter_bloc.
+datasources/ : Appels directs à Supabase.
 
-Séparer strictement les Events, les States et le Bloc.
+models/ : DTO (Data Transfer Objects) avec fromJson/toJson.
 
-Chaque feature doit avoir son dossier bloc/.
+repositories/ : Implémentations concrètes (ex: group_repository_impl.dart).
 
-Les états doivent être immuables (utiliser equatable).
+presentation/ : L'interface utilisateur.
 
-3. Data Source (Supabase)
-Utiliser supabase_flutter.
+bloc/ : Logic (Bloc, Event, State).
 
-Toutes les interactions avec la base de données passent par un Repository situé dans la couche features ou entities.
+pages/ : Les écrans de la feature.
 
-Pas d'appels directs à Supabase dans les fichiers UI.
+widgets/ : Composants privés à cette feature.
 
-4. Règles de Code (Dart & Flutter)
-Utiliser des constructeurs const autant que possible.
+module.dart : Configuration du GoRouter pour cette feature spécifique.
 
-Favoriser la composition plutôt que l'héritage.
+2. Injection de Dépendances (DI)
+Utilisation stricte de GetIt et Injectable.
 
-Respecter le principe de responsabilité unique (SRP).
+Chaque Repository ou Service doit être annoté avec @injectable ou @lazySingleton.
 
-Langue du code (variables, fonctions) : Anglais.
+L'initialisation se fait dans src/core/di/injection.dart.
 
-Langue de l'interface : Français.
+3. State Management (Bloc Pattern)
+Utilisation exclusive de flutter_bloc avec equatable pour l'immuabilité.
 
-Abstraction des Widgets (DRY) : > - Tout widget UI (Card, Button, Input, ListTile, etc.) utilisé plus de deux fois doit être extrait dans src/shared/widgets/.
+Séparation stricte : Events, States, et Bloc.
 
-Nommage : Utiliser le préfixe Custom (ex: CustomCard, CustomButton).
+La logique de navigation ne doit pas être dans le Bloc (utiliser les callbacks ou les listeners).
 
-Ces widgets doivent être hautement paramétrables (couleurs, fonctions de callback, icônes) pour s'adapter aux différents contextes des features.
+4. Règles de Code & UI (DRY & Responsive)
+Abstraction des Widgets (DRY) : Tout widget utilisé plus de deux fois doit être extrait dans src/shared/widgets/ avec le préfixe Custom (ex: CustomCard).
 
-5. Gestion des Erreurs
-Ne jamais laisser un catch vide.
+Thématisation : Interdiction de hardcoder des couleurs ou des polices. Utiliser context.textTheme ou Theme.of(context).
 
-Transformer les erreurs Supabase en Failures explicites pour les remonter au Bloc.
+Branding : Respecter le thème sombre (background #121212) et les polices (Titres: Roboto, Corps: Lato).
+
+Langues : Code en Anglais, Interface en Français.
+
+5. Documentation Obligatoire
+L'agent doit maintenir à jour le dossier doc/ à chaque évolution majeure :
+
+README.md : Point d'entrée avec liens vers la doc.
+
+01_functional_overview.md : Flux métier.
+
+02_technical_architecture.md : Détails FSD/Clean Arch.
+
+03_project_structure.md : Arborescence lib/.
+
+04_dependency_injection.md : Configuration GetIt.
+
+05_firebase_backend.md : Setup Firebase/Supabase.
+
+07_security.md : Règles RLS.
+
+08_testing_strategy.md : Stratégie de test.
+
+09_deployment_and_environment.md : CI/CD GitHub Actions.
+
+6. Data & Erreurs
+Interactions Supabase via supabase_flutter.
+
+Pas d'appels API directs dans l'UI.
+
+Gestion d'erreurs via des Failures explicites.
+

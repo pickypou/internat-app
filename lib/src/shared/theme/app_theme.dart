@@ -6,8 +6,16 @@ class AppTheme {
   static const Color background = Color(0xFF121212);
   static const Color surface = Color(0xFF1E1E1E);
 
-  // Purple accent as requested for Checkbox
-  static const Color pAccentPurple = Colors.purpleAccent;
+  // 6 vivid pastel accent colors for dark mode
+  static const Color pastelBlue = Color(0xFF82B1FF);
+  static const Color pastelGreen = Color(0xFFB9F6CA);
+  static const Color pastelOrange = Color(0xFFFFD180);
+  static const Color pastelRed = Color(0xFFFF8A80);
+  static const Color pastelPink = Color(0xFFFF80AB);
+  static const Color pastelTeal = Color(0xFFA7FFEB);
+
+  // Default accent
+  static const Color defaultAccent = pastelTeal;
 
   /// Returns the global ThemeData for the application.
   /// Uses [BuildContext] and [MediaQuery] to apply a simple responsive scaling factor.
@@ -27,8 +35,8 @@ class AppTheme {
 
       colorScheme: const ColorScheme.dark(
         surface: surface,
-        primary: pAccentPurple,
-        secondary: pAccentPurple,
+        primary: defaultAccent,
+        secondary: defaultAccent,
         error: Colors.redAccent,
       ),
 
@@ -129,7 +137,7 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith<Color>((states) {
           if (states.contains(WidgetState.selected)) {
-            return pAccentPurple;
+            return defaultAccent;
           }
           return Colors.transparent;
         }),

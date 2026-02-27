@@ -1,16 +1,26 @@
-import 'package:internat_app/ui/home_page/home_page.dart';
+import 'package:internat_app/src/shared/theme/app_theme.dart';
+import 'package:internat_app/src/core/di/injection.dart';
+import 'package:internat_app/src/app/routing/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
-  await Supabase.initialize(
-    url: 'https://ccsbzyqzyfgzivuymphn.supabase.co', // Trouvé dans Project Settings > API
-    anonKey: 'sb_publishable_2Q95P7DszU73bD5CX-Xb0w_Y2fU401w',  // Trouvé dans Project Settings > API
+  debugPrint(
+    'Loaded SUPABASE_URL: ${dotenv.env['SUPABASE_URL'] != null ? 'OK' : 'MISSING'}',
   );
 
-  runApp(MyApp());
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+
+  await configureDependencies();
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -18,12 +28,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const HomePage(),
+    return MaterialApp.router(
+      title: 'InternatApp',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.getTheme(context),
+      routerConfig: appRouter,
     );
   }
 }
