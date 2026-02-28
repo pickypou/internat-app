@@ -7,4 +7,10 @@ L'application doit fonctionner de manière automatisée lors de son déploiement
 - Le CI vérifiera automatiquement les erreurs syntaxiques.
 
 ## Supabase (Environnement)
-Dans ce projet, l'`url` et `anonKey` ont été partagées directement via paramétrage de dur. Par la suite, pour le déploiement multi-cibles, elles seront abstraites via `--dart-define` ou un fichier `.env`. Pour l'instant, l'accès local et distant (build mobile) de dev partage le même canal Supabase injecté dans `main.dart`.
+Dans ce projet, l'`url` et `anonKey` sont désormais sécurisées via un fichier `.env` en local (ignoré par Git). 
+
+Pour le déploiement CI (GitHub Actions), il est **impératif** d'ajouter les variables d'environnement suivantes dans les **Settings > Secrets and variables > Actions** du repository GitHub :
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Les workflows GitHub (e.g. `firebase-hosting-merge.yml`) sont ainsi configurés pour générer le fichier `.env` à la volée avant de lancer la compilation (le `flutter build`). Le code `main.dart` gère désormais ces variables en toute sécurité avec un bloc `try/catch` sur le chargement `dotenv`.

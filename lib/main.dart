@@ -7,16 +7,30 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint(
+      "Aucun fichier .env trouvé ou erreur de format, utilisation des variables d'environnement du système si disponibles.",
+    );
+  }
+
+  final supabaseUrl =
+      dotenv.env['SUPABASE_URL'] ??
+      const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  final supabaseAnonKey =
+      dotenv.env['SUPABASE_ANON_KEY'] ??
+      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
   debugPrint(
-    'Loaded SUPABASE_URL: ${dotenv.env['SUPABASE_URL'] != null ? 'OK' : 'MISSING'}',
+    'Loaded SUPABASE_URL: ${supabaseUrl.isNotEmpty ? 'OK' : 'MISSING'}',
   );
 
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-  );
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  } else {
+    debugPrint("Erreur : Clés Supabase manquantes.");
+  }
 
   await configureDependencies();
 
