@@ -45,6 +45,16 @@ import '../../features/group_selection/domain/usecases/rename_group_usecase.dart
     as _i1052;
 import '../../features/group_selection/presentation/bloc/group_bloc.dart'
     as _i816;
+import '../../features/stages/data/datasources/stage_period_remote_datasource.dart'
+    as _i880;
+import '../../features/stages/data/repositories/stage_period_repository_impl.dart'
+    as _i981;
+import '../../features/stages/domain/repositories/stage_period_repository.dart'
+    as _i539;
+import '../../features/stages/domain/usecases/calendar_import_usecase.dart'
+    as _i328;
+import '../../features/stages/domain/usecases/get_stage_periods_usecase.dart'
+    as _i415;
 import '../../features/students/data/datasources/student_remote_datasource.dart'
     as _i65;
 import '../../features/students/data/repositories/student_repository_impl.dart'
@@ -107,6 +117,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i679.StudentRepository>(
       () => _i865.StudentRepositoryImpl(gh<_i65.StudentRemoteDataSource>()),
     );
+    gh.factory<_i880.StagePeriodRemoteDataSource>(
+      () => _i880.StagePeriodRemoteDataSourceImpl(
+        supabaseClient: gh<_i454.SupabaseClient>(),
+      ),
+    );
     gh.factory<_i535.GroupRepository>(
       () => _i954.GroupRepositoryImpl(gh<_i91.GroupRemoteDataSource>()),
     );
@@ -136,6 +151,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i777.UpdateStudentUseCase>(
       () => _i777.UpdateStudentUseCase(gh<_i679.StudentRepository>()),
+    );
+    gh.factory<_i539.StagePeriodRepository>(
+      () => _i981.StagePeriodRepositoryImpl(
+        gh<_i880.StagePeriodRemoteDataSource>(),
+      ),
     );
     gh.factory<_i483.GetAttendancesUseCase>(
       () => _i483.GetAttendancesUseCase(gh<_i477.AttendanceRepository>()),
@@ -181,6 +201,12 @@ extension GetItInjectableX on _i174.GetIt {
         saveAttendanceUseCase: gh<_i763.SaveAttendanceUseCase>(),
         deleteAttendanceUseCase: gh<_i4.DeleteAttendanceUseCase>(),
       ),
+    );
+    gh.factory<_i328.CalendarImportUseCase>(
+      () => _i328.CalendarImportUseCase(gh<_i539.StagePeriodRepository>()),
+    );
+    gh.factory<_i415.GetStagePeriodsUseCase>(
+      () => _i415.GetStagePeriodsUseCase(gh<_i539.StagePeriodRepository>()),
     );
     return this;
   }

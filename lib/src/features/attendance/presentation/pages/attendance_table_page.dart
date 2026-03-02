@@ -17,6 +17,9 @@ import '../../../students/presentation/widgets/bulk_import_students_sheet.dart';
 import '../../../students/presentation/widgets/student_edit_sheet.dart';
 import '../../../students/presentation/bloc/student_bloc.dart';
 import '../../../students/domain/usecases/delete_students_by_group_usecase.dart';
+import '../../../stages/domain/entities/stage_period_entity.dart';
+import '../../../stages/domain/services/stage_period_service.dart';
+import '../../../stages/domain/usecases/get_stage_periods_usecase.dart';
 
 enum TableColumn {
   classe('Classe'),
@@ -63,11 +66,16 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
   final Set<TableColumn> _expandedColumns = {};
   final Map<String, bool> _expandedClasses = {};
 
+  // ── Calendrier (periods) ──────────────────────────────────────────────────
+  List<StagePeriodEntity> _periods = [];
+  bool _showAll = false; // override: show all students regardless of period
+
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
     _loadColumnOrder();
+    _loadPeriods();
 
     _leftScrollController.addListener(() {
       if (_isScrolling) return;
@@ -82,6 +90,15 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
       _leftScrollController.jumpTo(_rightScrollController.offset);
       _isScrolling = false;
     });
+  }
+
+  Future<void> _loadPeriods() async {
+    try {
+      final periods = await getIt<GetStagePeriodsUseCase>()();
+      if (mounted) setState(() => _periods = periods);
+    } catch (_) {
+      // Pas bloquant — on continue sans filtrage
+    }
   }
 
   Future<void> _loadColumnOrder() async {
@@ -251,10 +268,21 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
               itemBuilder: (context, index) {
                 final item = listItems[index];
 
-                if (item is String) {
+                if (item is Map) {
                   // Class Header
-                  final className = item;
+                  final className = item['class'] as String;
+                  final classStatus = item['status'] as String? ?? 'PRESENT';
                   final isExpanded = _expandedClasses[className] ?? true;
+                  final badgeColor = classStatus == 'STAGE'
+                      ? Colors.orange
+                      : classStatus == 'HORS_QUINZAINE'
+                      ? Colors.blue
+                      : null;
+                  final badgeLabel = classStatus == 'STAGE'
+                      ? '🟠 STAGE'
+                      : classStatus == 'HORS_QUINZAINE'
+                      ? '🔵 HORS'
+                      : null;
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -295,6 +323,27 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (badgeLabel != null)
+                            Container(
+                              margin: const EdgeInsets.only(right: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeColor?.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: badgeColor!),
+                              ),
+                              child: Text(
+                                badgeLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: badgeColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -425,7 +474,7 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
                   itemBuilder: (context, index) {
                     final item = listItems[index];
 
-                    if (item is String) {
+                    if (item is Map) {
                       // Class header row background
                       return Container(
                         decoration: BoxDecoration(
@@ -643,6 +692,16 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
           ),
           actions: [
             IconButton(
+              icon: Icon(
+                _showAll ? Icons.visibility : Icons.visibility_off,
+                color: _showAll ? Colors.orange : null,
+              ),
+              tooltip: _showAll
+                  ? 'Filtrage actif : Tout afficher'
+                  : 'Tout afficher',
+              onPressed: () => setState(() => _showAll = !_showAll),
+            ),
+            IconButton(
               icon: const Icon(Icons.calendar_today),
               onPressed: () async {
                 final date = await showDatePicker(
@@ -729,19 +788,49 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
             } else if (state is AttendanceError) {
               return Center(child: Text(state.message));
             } else if (state is AttendanceLoaded) {
-              // Group students by class
+              // Group students by class, with period status
               final Map<String, List<StudentEntity>> studentsByClass = {};
               for (final student in state.students) {
                 final cName = student.className.isEmpty
                     ? 'Sans classe'
                     : student.className;
+
+                // Calendar filtering: skip if class is not PRESENT and not _showAll
+                if (!_showAll && _periods.isNotEmpty) {
+                  final status = StagePeriodService.classStatusOn(
+                    cName,
+                    _selectedDate,
+                    _periods,
+                  );
+                  if (status == 'HORS_QUINZAINE' || status == 'STAGE') {
+                    // Still add, but with badge — handled in header rendering
+                  }
+                }
                 studentsByClass.putIfAbsent(cName, () => []).add(student);
               }
               final sortedClasses = studentsByClass.keys.toList()..sort();
 
               final List<dynamic> listItems = [];
               for (final cName in sortedClasses) {
-                listItems.add(cName); // Class Header
+                // Compute class status
+                final classStatus = _periods.isEmpty
+                    ? 'PRESENT'
+                    : StagePeriodService.classStatusOn(
+                        cName,
+                        _selectedDate,
+                        _periods,
+                      );
+
+                // Skip entire class if not showAll and class is hidden
+                if (!_showAll &&
+                    _periods.isNotEmpty &&
+                    classStatus != 'PRESENT') {
+                  // Don't add to listItems — class is hidden
+                  continue;
+                }
+
+                // Pass a Map as header so we can render badge
+                listItems.add({'class': cName, 'status': classStatus});
                 final isExpanded = _expandedClasses[cName] ?? true;
                 if (isExpanded) {
                   listItems.addAll(studentsByClass[cName]!);

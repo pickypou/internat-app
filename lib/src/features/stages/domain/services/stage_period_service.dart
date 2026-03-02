@@ -1,38 +1,59 @@
 import '../entities/stage_period_entity.dart';
 
-/// Pure domain service for stage period logic.
+/// Pure domain service for stage/presence period logic.
 /// No dependencies on Flutter or Supabase — fully unit-testable.
 class StagePeriodService {
   StagePeriodService._(); // static-only utility class
 
-  /// Returns true if [className] has an active stage on [date].
-  /// Start and end dates are **inclusive**.
-  /// Class name comparison is case-insensitive.
-  static bool isInStage(
+  // ── Filtering helpers ──────────────────────────────────────────────────────
+
+  /// Status of a class on a given date based on recorded periods.
+  ///
+  /// Logic (in priority order):
+  ///   1. If a STAGE or ALTERNANCE period covers [date] → 'STAGE'
+  ///   2. If a PRESENCE period covers [date]            → 'PRESENT'
+  ///   3. No period found                               → 'HORS_QUINZAINE'
+  static String classStatusOn(
     String className,
     DateTime date,
     List<StagePeriodEntity> periods,
   ) {
     final classKey = className.toLowerCase().trim();
-    // Normalise date: compare only year/month/day
-    final d = DateTime(date.year, date.month, date.day);
+    final d = _dateOnly(date);
 
-    return periods.any((p) {
-      if (p.className.toLowerCase().trim() != classKey) return false;
-      final start = DateTime(
-        p.startDate.year,
-        p.startDate.month,
-        p.startDate.day,
-      );
-      final end = DateTime(p.endDate.year, p.endDate.month, p.endDate.day);
-      return !d.isBefore(start) && !d.isAfter(end);
-    });
+    StagePeriodEntity? foundStage;
+    StagePeriodEntity? foundPresence;
+
+    for (final p in periods) {
+      if (p.className.toLowerCase().trim() != classKey) continue;
+      final start = _dateOnly(p.startDate);
+      final end = _dateOnly(p.endDate);
+      if (d.isBefore(start) || d.isAfter(end)) continue;
+
+      final t = p.type.toUpperCase();
+      if (t == 'STAGE' || t == 'ALTERNANCE') {
+        foundStage = p;
+      } else if (t == 'PRESENCE') {
+        foundPresence = p;
+      }
+    }
+
+    if (foundStage != null) return 'STAGE';
+    if (foundPresence != null) return 'PRESENT';
+    return 'HORS_QUINZAINE';
+  }
+
+  /// Returns true if [className] has an active STAGE/ALTERNANCE on [date].
+  /// Start and end dates are **inclusive**.
+  static bool isInStage(
+    String className,
+    DateTime date,
+    List<StagePeriodEntity> periods,
+  ) {
+    return classStatusOn(className, date, periods) == 'STAGE';
   }
 
   /// Filters [students] to keep only those whose class is NOT in stage on [date].
-  ///
-  /// [getClassName] is a function that extracts the `className` field from [T],
-  /// making this method generic and independent of the concrete student type.
   static List<T> filterActiveStudents<T>(
     List<T> students,
     String Function(T) getClassName,
@@ -44,4 +65,7 @@ class StagePeriodService {
         .where((s) => !isInStage(getClassName(s), date, periods))
         .toList();
   }
+
+  // ── Private helpers ────────────────────────────────────────────────────────
+  static DateTime _dateOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 }
