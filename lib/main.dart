@@ -9,8 +9,8 @@ import 'dart:developer' as dev;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Clés injectées via --dart-define au moment du build (CI GitHub Actions).
-  // Localement : flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+  // Clés injectées via --dart-define au moment du build (CI) ou via
+  // launch.json (VS Code local). Voir .vscode/launch.json.
   const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
@@ -19,20 +19,21 @@ void main() async {
     'SUPABASE_ANON_KEY: ${supabaseAnonKey.isNotEmpty ? 'OK' : 'MISSING'}',
   );
 
-  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+  final bool supabaseReady =
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  if (supabaseReady) {
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    await configureDependencies();
+    await initializeDateFormatting('fr_FR', null);
+    runApp(const MyApp());
   } else {
-    dev.log(
-      '[main] ERREUR : Clés Supabase manquantes — app démarrée sans connexion.',
-    );
+    // Lancer une UI minimale pour signaler la misconfiguration plutôt que crash.
+    runApp(const _MissingKeysApp());
   }
-
-  await configureDependencies();
-  await initializeDateFormatting('fr_FR', null);
-
-  runApp(const MyApp());
 }
 
+// ── App principale ────────────────────────────────────────────────────────────
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -43,6 +44,50 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.getTheme(context),
       routerConfig: appRouter,
+    );
+  }
+}
+
+// ── Écran de secours : clés Supabase manquantes ───────────────────────────────
+class _MissingKeysApp extends StatelessWidget {
+  const _MissingKeysApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.red.shade900,
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, color: Colors.white, size: 64),
+                SizedBox(height: 24),
+                Text(
+                  'Configuration manquante',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Les clés Supabase ne sont pas configurées.\n\n'
+                  'En local : relancez avec\n'
+                  '--dart-define=SUPABASE_URL=...\n'
+                  '--dart-define=SUPABASE_ANON_KEY=...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
