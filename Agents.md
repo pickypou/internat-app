@@ -84,3 +84,14 @@ Pas d'appels API directs dans l'UI.
 
 Gestion d'erreurs via des Failures explicites.
 
+
+### 🛡️ RÈGLES DE PRÉSERVATION (STRICTES)
+
+1. Interdiction de Suppression : Ne jamais supprimer un élément d'UI existant (boutons, icônes d'import, colonnes) sans une demande explicite de l'utilisateur.
+2. Persistance des Fonctions : Le bouton d'ajout manuel (+), l'icône d'importation massive et le système de tri alphabétique doivent être maintenus à chaque itération.
+3. Structure du Tableau : La vue par classes (Tableaux séparés et repliables) est la structure de référence. Ne pas revenir à une liste simple.
+4. Thème Visuel : Les bordures et titres doivent toujours utiliser la couleur du groupe (group.color).
+5. Validation : Avant de modifier un fichier presentation, vérifie que tu ne supprimes pas un FloatingActionButton ou une action dans l' AppBar.
+
+### 🚨 CONSIGNES DE NON-RÉGRESSION
+Il est formellement interdit de supprimer le bouton d'importation, le bouton d'ajout (+), ou de modifier la structure de tableaux séparés par classe sans validation. Chaque nouvelle fonctionnalité doit s'ajouter à l'existant, pas le remplacer.

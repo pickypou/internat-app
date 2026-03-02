@@ -18,3 +18,18 @@ class CreateGroup extends GroupEvent {
   @override
   List<Object> get props => [name, color];
 }
+
+class DeleteGroup extends GroupEvent {
+  final String groupId;
+  const DeleteGroup(this.groupId);
+  @override
+  List<Object> get props => [groupId];
+}
+
+class RenameGroup extends GroupEvent {
+  final String groupId;
+  final String newName;
+  const RenameGroup(this.groupId, this.newName);
+  @override
+  List<Object> get props => [groupId, newName];
+}

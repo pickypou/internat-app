@@ -4,6 +4,7 @@ import 'package:internat_app/src/app/routing/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,7 @@ void main() async {
   }
 
   await configureDependencies();
+  await initializeDateFormatting('fr_FR', null);
 
   runApp(const MyApp());
 }

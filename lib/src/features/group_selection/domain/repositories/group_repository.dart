@@ -8,4 +8,6 @@ abstract class GroupRepository {
 
   /// Creates a new group.
   Future<void> createGroup(String name, String colorHex);
+  Future<void> deleteGroup(String groupId);
+  Future<void> renameGroup(String groupId, String newName);
 }

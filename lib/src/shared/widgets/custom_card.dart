@@ -9,6 +9,7 @@ class CustomCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final Color? color;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const CustomCard({
     super.key,
@@ -16,6 +17,7 @@ class CustomCard extends StatelessWidget {
     this.padding,
     this.color,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -34,6 +36,7 @@ class CustomCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: resolvedShape is RoundedRectangleBorder
             ? resolvedShape.borderRadius as BorderRadius
             : null,

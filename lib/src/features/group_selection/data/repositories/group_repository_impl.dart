@@ -21,4 +21,14 @@ class GroupRepositoryImpl implements GroupRepository {
   Future<void> createGroup(String name, String colorHex) async {
     return await _remoteDataSource.createGroup(name, colorHex);
   }
+
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    return await _remoteDataSource.deleteGroup(groupId);
+  }
+
+  @override
+  Future<void> renameGroup(String groupId, String newName) async {
+    return await _remoteDataSource.renameGroup(groupId, newName);
+  }
 }

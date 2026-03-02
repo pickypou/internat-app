@@ -7,6 +7,8 @@ import '../models/group_model.dart';
 abstract class GroupRemoteDataSource {
   Future<List<GroupModel>> getGroups();
   Future<void> createGroup(String name, String colorHex);
+  Future<void> deleteGroup(String groupId);
+  Future<void> renameGroup(String groupId, String newName);
 }
 
 /// Supabase implementation of the data source.
@@ -42,6 +44,30 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       });
     } catch (e) {
       throw ServerFailure('Failed to create group in Supabase: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    try {
+      // Must delete students first (FK constraint: students.group_id → groups.id)
+      await _supabaseClient.from('students').delete().eq('group_id', groupId);
+      // Then delete the group itself
+      await _supabaseClient.from('groups').delete().eq('id', groupId);
+    } catch (e) {
+      throw ServerFailure('Failed to delete group in Supabase: $e');
+    }
+  }
+
+  @override
+  Future<void> renameGroup(String groupId, String newName) async {
+    try {
+      await _supabaseClient
+          .from('groups')
+          .update({'name': newName})
+          .eq('id', groupId);
+    } catch (e) {
+      throw ServerFailure('Failed to rename group in Supabase: $e');
     }
   }
 }

@@ -12,21 +12,16 @@ lib/
     │   └── di/                      # Configuration de l'Injection de Dépendances Centrale (`injection.dart`)
     ├── entities/                    # Entités de base (abstractions pures)
     ├── features/
-    │   └── group_selection/         # Structure STRICTE Clean Arch / FSD
-    │       ├── domain/
-    │       │   ├── entities/        # Entités pures isolées
-    │       │   ├── failures/        # Gestion des erreurs propre au domaine métier
-    │       │   ├── repositories/    # Interfaces abstraites (ex: GroupRepository.dart)
-    │       │   └── usecases/        # Cas d'utilisation de la feature pure métier
-    │       ├── data/
-    │       │   ├── datasources/     # Appels Base de Données / API externes
-    │       │   ├── models/          # Conversions fromJson (hérite des entities)
-    │       │   └── repositories/    # Implémentations concrètes (avec `@Injectable`)
-    │       ├── presentation/
-    │       │   ├── bloc/            # Logiciels d'état de la feature
-    │       │   ├── pages/           # Pages métiers complètes liées au router (Scaffolds)
-    │       │   └── widgets/         # Sections UI intelligentes ou idiotes propres à la feature
-    │       └── group_selection_module.dart  # Définitions GoRouter pour cette feature
+    │   ├── group_selection/         # Structure STRICTE Clean Arch / FSD
+    │   │   ├── domain/
+    │   │   ├── data/
+    │   │   ├── presentation/
+    │   │   └── group_selection_module.dart
+    │   └── students/                # Nouvelle feature (Student Management)
+    │       ├── domain/              # Entities, Repositories (Interfaces), UseCases
+    │       ├── data/                # Models, Repositories (Impl), DataSources
+    │       ├── presentation/        # StudentBloc, StudentListPage, AddStudentForm
+    │       └── student_module.dart  # Définitions GoRouter pour cette feature
     └── shared/
             └── school_logo.dart
 ```
