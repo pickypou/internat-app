@@ -14,8 +14,8 @@ import '../bloc/attendance_state.dart';
 import '../widgets/status_modal.dart';
 import '../../../students/presentation/widgets/add_student_form.dart';
 import '../../../students/presentation/widgets/bulk_import_students_sheet.dart';
+import '../../../students/presentation/widgets/student_edit_sheet.dart';
 import '../../../students/presentation/bloc/student_bloc.dart';
-import '../../../students/domain/usecases/delete_student_usecase.dart';
 import '../../../students/domain/usecases/delete_students_by_group_usecase.dart';
 
 enum TableColumn {
@@ -143,119 +143,21 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
     final todayAtt = attendances
         .where((a) => a.studentId == student.id)
         .firstOrNull;
-    final currentNote = todayAtt?.note ?? '';
-    final TextEditingController noteController = TextEditingController(
-      text: currentNote,
-    );
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: RichText(
-            text: TextSpan(
-              text: 'Note : ',
-              style: context.textTheme.titleLarge,
-              children: [
-                TextSpan(
-                  text:
-                      '${student.lastName.toUpperCase()} ${student.firstName}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return BlocProvider.value(
+          value: context.read<AttendanceBloc>(),
+          child: StudentEditSheet(
+            student: student,
+            currentAttendance: todayAtt,
+            groupId: widget.groupId,
+            date: _selectedDate,
+            groupColor: groupColor,
           ),
-          content: TextField(
-            controller: noteController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Ex: Parents venus à 20h15',
-              border: OutlineInputBorder(
-                borderSide: BorderSide(color: groupColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: groupColor, width: 2),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Supprimer cet élève ?'),
-                    content: Text(
-                      'Êtes-vous sûr de vouloir supprimer définitivement ${student.lastName.toUpperCase()} ${student.firstName} ?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('Annuler'),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        child: const Text('Supprimer'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true && context.mounted) {
-                  try {
-                    // Use getIt directly: StudentBloc is not in AttendanceTablePage tree
-                    await getIt<DeleteStudentUseCase>()(student.id);
-                  } catch (_) {}
-                  if (context.mounted) {
-                    context.read<AttendanceBloc>().add(
-                      LoadAttendance(widget.groupId, _selectedDate),
-                    );
-                  }
-                }
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Icon(Icons.delete_outline),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newNote = noteController.text.trim();
-                final updated = AttendanceEntity(
-                  id: todayAtt?.id ?? '',
-                  studentId: student.id,
-                  checkDate: _selectedDate,
-                  isPresentEvening: todayAtt?.isPresentEvening ?? false,
-                  isInBus: todayAtt?.isInBus ?? false,
-                  note: newNote,
-                  groupId: widget.groupId,
-                );
-                context.read<AttendanceBloc>().add(
-                  UpdateAttendance(updated, widget.groupId, _selectedDate),
-                );
-                Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Note enregistrée'),
-                    backgroundColor: context.colorScheme.primary,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: groupColor,
-                foregroundColor: groupColor.computeLuminance() > 0.5
-                    ? Colors.black
-                    : Colors.white,
-              ),
-              child: const Text('Enregistrer'),
-            ),
-          ],
         );
       },
     );

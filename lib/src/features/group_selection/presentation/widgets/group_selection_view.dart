@@ -13,144 +13,151 @@ class GroupSelectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            Center(
-              child: Image.asset(
-                'assets/images/inb.png',
-                height: 120, // Adjust size as appropriate for the logo
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Mes groupes',
-              style: context.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Sélectionnez un groupe pour voir les élèves',
-              style: context.textTheme.bodyLarge?.copyWith(
-                color: context.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: BlocBuilder<GroupBloc, GroupState>(
-                builder: (context, state) {
-                  if (state is GroupsLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (state is GroupsError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: context.colorScheme.error,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            state.message,
-                            style: context.textTheme.bodyLarge?.copyWith(
-                              color: context.colorScheme.error,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              context.read<GroupBloc>().add(LoadGroups());
-                            },
-                            child: const Text('Réessayer'),
-                          ),
-                        ],
+    return BlocBuilder<GroupBloc, GroupState>(
+      builder: (context, state) {
+        return CustomScrollView(
+          slivers: [
+            // ── En-tête : logo + titre (scrolle avec le reste) ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Image.asset(
+                        'assets/images/inb.png',
+                        height: 120,
+                        fit: BoxFit.contain,
                       ),
-                    );
-                  }
-
-                  if (state is GroupsLoaded) {
-                    if (state.groups.isEmpty) {
-                      return Center(
-                        child: Text(
-                          'Aucun groupe disponible',
-                          style: context.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Mes groupes',
+                      style: context.textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sélectionnez un groupe pour voir les élèves',
+                      style: context.textTheme.bodyLarge?.copyWith(
+                        color: context.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
                         ),
-                      );
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Special "Appel Dimanche" card
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _GroupCard(
-                            name: '🌙 Appel Dimanche',
-                            colorHex: 'FF6D00',
-                            groupId: kAppelDimancheGroupId,
-                            onTap: () {
-                              context.push(
-                                '/group/$kAppelDimancheGroupId',
-                                extra: {
-                                  'name': 'Appel Dimanche',
-                                  'color': 'FF6D00',
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: GridView.builder(
-                            padding: const EdgeInsets.only(bottom: 80),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  childAspectRatio: 1.1,
-                                ),
-                            itemCount: state.groups.length,
-                            itemBuilder: (context, index) {
-                              final group = state.groups[index];
-                              return _GroupCard(
-                                name: group.name,
-                                colorHex: group.color,
-                                groupId: group.id,
-                                onTap: () {
-                                  context.push(
-                                    '/group/${group.id}',
-                                    extra: {
-                                      'name': group.name,
-                                      'color': group.color,
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-
-                  return const SizedBox.shrink();
-                },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
+
+            // ── États loading / error ──
+            if (state is GroupsLoading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (state is GroupsError)
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: context.colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.message,
+                        style: context.textTheme.bodyLarge?.copyWith(
+                          color: context.colorScheme.error,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () =>
+                            context.read<GroupBloc>().add(LoadGroups()),
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (state is GroupsLoaded) ...[
+              if (state.groups.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'Aucun groupe disponible',
+                      style: context.textTheme.bodyLarge,
+                    ),
+                  ),
+                )
+              else ...[
+                // ── Carte spéciale Appel Dimanche ──
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 0,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _GroupCard(
+                        name: '🌙 Appel Dimanche',
+                        colorHex: 'FF6D00',
+                        groupId: kAppelDimancheGroupId,
+                        onTap: () {
+                          context.push(
+                            '/group/$kAppelDimancheGroupId',
+                            extra: {
+                              'name': 'Appel Dimanche',
+                              'color': 'FF6D00',
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── Grille des groupes ──
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final group = state.groups[index];
+                      return _GroupCard(
+                        name: group.name,
+                        colorHex: group.color,
+                        groupId: group.id,
+                        onTap: () {
+                          context.push(
+                            '/group/${group.id}',
+                            extra: {'name': group.name, 'color': group.color},
+                          );
+                        },
+                      );
+                    }, childCount: state.groups.length),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.1,
+                        ),
+                  ),
+                ),
+              ],
+            ],
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
