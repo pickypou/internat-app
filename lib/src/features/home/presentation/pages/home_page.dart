@@ -8,6 +8,7 @@ import '../../../group_selection/presentation/bloc/group_bloc.dart';
 import '../../../group_selection/presentation/bloc/group_event.dart';
 import '../../../group_selection/presentation/widgets/group_selection_view.dart';
 import '../../../group_selection/presentation/widgets/create_group_form.dart';
+import '../../../group_selection/presentation/widgets/global_import_sheet.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -16,35 +17,68 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<GroupBloc>()..add(LoadGroups()),
-      child: Scaffold(
-        body: const GroupSelectionView(),
-        floatingActionButton: Builder(
-          builder: (context) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: context.colorScheme.surface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  builder: (bottomSheetContext) {
-                    return BlocProvider.value(
-                      value: BlocProvider.of<GroupBloc>(context),
-                      child: const CreateGroupForm(),
-                    );
-                  },
-                );
-              },
+      child: Builder(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Groupes'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.upload_file),
+                  tooltip: 'Import global (Excel)',
+                  onPressed: () => _showGlobalImport(context),
+                ),
+              ],
+            ),
+            body: const GroupSelectionView(),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _showCreateGroup(context),
               icon: const Icon(Icons.add),
               label: const Text('Nouveau groupe'),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
+  }
+
+  void _showCreateGroup(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return BlocProvider.value(
+          value: BlocProvider.of<GroupBloc>(context),
+          child: const CreateGroupForm(),
+        );
+      },
+    );
+  }
+
+  void _showGlobalImport(BuildContext context) {
+    showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => const GlobalImportSheet(),
+    ).then((count) {
+      if (count != null && count > 0 && context.mounted) {
+        // Reload groups list after import
+        context.read<GroupBloc>().add(LoadGroups());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ $count élèves importés avec succès !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
   }
 }

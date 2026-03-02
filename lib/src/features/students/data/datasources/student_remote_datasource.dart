@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../shared/error/failure.dart';
@@ -140,62 +141,62 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
   Future<void> addStudents(List<StudentEntity> students) async {
     try {
       if (students.isEmpty) return;
-      final groupId = students.first.groupId;
 
-      // Fetch existing to avoid duplicates based on firstName + lastName
+      // Fetch ALL students globally (not just a single group) to allow
+      // multi-group batch import and key by [lastName|firstName|className].
       final existingResponse = await _supabaseClient
           .from('students')
-          .select('id, first_name, last_name')
-          .eq('group_id', groupId);
+          .select('id, first_name, last_name, class_name');
 
-      final List<dynamic> existingDocs = existingResponse;
-      final existingMap =
-          <String, String>{}; // key: "first_name|last_name", value: id
-      for (var doc in existingDocs) {
-        final f = (doc['first_name'] as String).toLowerCase().trim();
-        final l = (doc['last_name'] as String).toLowerCase().trim();
-        existingMap['$f|$l'] = doc['id'] as String;
+      // Build lookup map: "lastname|firstname|classname" -> existing student id
+      final existingMap = <String, String>{};
+      for (final doc in existingResponse as List<dynamic>) {
+        final l = (doc['last_name'] as String? ?? '').toLowerCase().trim();
+        final f = (doc['first_name'] as String? ?? '').toLowerCase().trim();
+        final c = (doc['class_name'] as String? ?? '').toLowerCase().trim();
+        existingMap['$l|$f|$c'] = doc['id'] as String;
       }
 
       final List<Map<String, dynamic>> toInsert = [];
 
-      for (var student in students) {
-        final key =
-            '${student.firstName.toLowerCase().trim()}|${student.lastName.toLowerCase().trim()}';
+      for (final student in students) {
+        final l = student.lastName.toLowerCase().trim();
+        final f = student.firstName.toLowerCase().trim();
+        final c = student.className.toLowerCase().trim();
+        final key = '$l|$f|$c';
 
         if (existingMap.containsKey(key)) {
-          // Update existing
-          final model = StudentModel(
-            id: existingMap[key]!, // Use existing ID
-            firstName: student.firstName,
-            lastName: student.lastName,
-            roomNumber: student.roomNumber,
-            className: student.className,
-            groupId: student.groupId,
-          );
+          // Update: refresh room_number (may have changed) + group_id
+          final existingId = existingMap[key]!;
+          dev.log('[addStudents] UPDATE student id=$existingId ($l $f $c)');
           await _supabaseClient
               .from('students')
-              .update(model.toJson())
-              .eq('id', existingMap[key]!);
+              .update({
+                'room_number': student.roomNumber,
+                'group_id': student.groupId,
+              })
+              .eq('id', existingId);
         } else {
-          // Insert new
-          toInsert.add(
-            StudentModel(
-              id: student.id,
-              firstName: student.firstName,
-              lastName: student.lastName,
-              roomNumber: student.roomNumber,
-              className: student.className,
-              groupId: student.groupId,
-            ).toJson(),
-          );
+          // Insert new student
+          dev.log('[addStudents] INSERT new student ($l $f $c)');
+          toInsert.add({
+            'first_name': student.firstName,
+            'last_name': student.lastName,
+            'room_number': student.roomNumber,
+            'class_name': student.className,
+            'group_id': student.groupId,
+          });
         }
       }
 
       if (toInsert.isNotEmpty) {
+        dev.log(
+          '[addStudents] Batch inserting ${toInsert.length} new students',
+        );
         await _supabaseClient.from('students').insert(toInsert);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      dev.log('[addStudents] ERROR: $e\n$stack');
       throw ServerFailure(
         'Failed to bulk insert/update students in Supabase: $e',
       );

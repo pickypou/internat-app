@@ -144,7 +144,7 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
         .where((a) => a.studentId == student.id)
         .firstOrNull;
     final currentNote = todayAtt?.note ?? '';
-    final TextEditingController _noteController = TextEditingController(
+    final TextEditingController noteController = TextEditingController(
       text: currentNote,
     );
 
@@ -166,7 +166,7 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
             ),
           ),
           content: TextField(
-            controller: _noteController,
+            controller: noteController,
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Ex: Parents venus à 20h15',
@@ -226,7 +226,7 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                final newNote = _noteController.text.trim();
+                final newNote = noteController.text.trim();
                 final updated = AttendanceEntity(
                   id: todayAtt?.id ?? '',
                   studentId: student.id,

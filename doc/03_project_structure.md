@@ -1,32 +1,68 @@
 # 03 - Project Structure
 
-L'arborescence de `lib/` est régie par l'architecture FSD. Voici une vue globale :
+L'arborescence de `lib/` respecte l'architecture **FSD + Clean Architecture** par feature.
 
 ```text
 lib/
 ├── main.dart
 └── src/
     ├── app/
-    │   └── routing/                 # Configuration globale de GoRouter (`app_router.dart`)
+    │   └── routing/                   # GoRouter global (app_router.dart)
     ├── core/
-    │   └── di/                      # Configuration de l'Injection de Dépendances Centrale (`injection.dart`)
-    ├── entities/                    # Entités de base (abstractions pures)
+    │   └── di/                        # GetIt + Injectable (injection.dart, injection.config.dart)
     ├── features/
-    │   ├── group_selection/         # Structure STRICTE Clean Arch / FSD
+    │   ├── home/
+    │   │   └── presentation/pages/    # HomePage (AppBar + grille de groupes + FAB)
+    │   ├── group_selection/
     │   │   ├── domain/
+    │   │   │   ├── entities/          # GroupEntity
+    │   │   │   ├── repositories/      # GroupRepository (interface)
+    │   │   │   └── usecases/          # GetGroups, CreateGroup, DeleteGroup, RenameGroup,
+    │   │   │                          #   GlobalImportUseCase
     │   │   ├── data/
-    │   │   ├── presentation/
-    │   │   └── group_selection_module.dart
-    │   └── students/                # Nouvelle feature (Student Management)
-    │       ├── domain/              # Entities, Repositories (Interfaces), UseCases
-    │       ├── data/                # Models, Repositories (Impl), DataSources
-    │       ├── presentation/        # StudentBloc, StudentListPage, AddStudentForm
-    │       └── student_module.dart  # Définitions GoRouter pour cette feature
+    │   │   │   ├── models/            # GroupModel
+    │   │   │   ├── datasources/       # GroupRemoteDataSourceImpl (Supabase)
+    │   │   │   └── repositories/      # GroupRepositoryImpl
+    │   │   └── presentation/
+    │   │       ├── bloc/              # GroupBloc / GroupEvent / GroupState
+    │   │       └── widgets/           # GroupSelectionView, CreateGroupForm,
+    │   │                              #   GlobalImportSheet
+    │   ├── students/
+    │   │   ├── domain/
+    │   │   │   ├── entities/          # StudentEntity
+    │   │   │   ├── repositories/      # StudentRepository (interface)
+    │   │   │   └── usecases/          # GetStudents, GetAllStudents, AddStudent,
+    │   │   │                          #   AddStudents, UpdateStudent, DeleteStudent,
+    │   │   │                          #   DeleteStudentsByGroup
+    │   │   ├── data/
+    │   │   │   ├── models/            # StudentModel
+    │   │   │   ├── datasources/       # StudentRemoteDataSourceImpl (upsert [Nom+Prénom+Classe])
+    │   │   │   └── repositories/      # StudentRepositoryImpl
+    │   │   └── presentation/
+    │   │       ├── bloc/              # StudentBloc / StudentEvent / StudentState
+    │   │       └── widgets/           # AddStudentForm, BulkImportStudentsSheet
+    │   └── attendance/
+    │       ├── domain/
+    │       │   ├── entities/          # AttendanceEntity
+    │       │   ├── repositories/      # AttendanceRepository (interface)
+    │       │   └── usecases/          # GetAttendances, SaveAttendance, DeleteAttendance
+    │       ├── data/
+    │       │   ├── models/            # AttendanceModel
+    │       │   ├── datasources/       # AttendanceRemoteDataSourceImpl
+    │       │   │                      #   (gestion UUID virtuel appel-dimanche)
+    │       │   └── repositories/      # AttendanceRepositoryImpl
+    │       └── presentation/
+    │           ├── bloc/              # AttendanceBloc / AttendanceEvent / AttendanceState
+    │           ├── pages/             # AttendanceTablePage
+    │           └── widgets/           # StatusModal
     └── shared/
-            └── school_logo.dart
+        ├── error/                     # Failure classes
+        ├── theme/                     # ThemeData, ThemeExt
+        └── widgets/                   # CustomCard (onTap + onLongPress)
 ```
 
 ### Règles d'Intégration
-- Tous les écrans complets vont dans `src/pages`.
-- Chaque nouvelle fonctionnalité ayant sa propre donnée ou logique BLoC va dans `src/features`.
-- Les widgets UI génériques (boutons cliquables standardisés) utilisés dans + de 2 features doivent être déplacés dans `src/shared/widgets/`.
+- Chaque feature possède ses propres `domain/`, `data/`, `presentation/`.
+- Les Blocs sont injectés via `getIt<XBloc>()` — jamais instanciés manuellement.
+- Les widgets génériques (utilisés dans ≥ 2 features) vont dans `shared/widgets/`.
+- Groupes virtuels (`appel-dimanche`) : jamais stockés comme UUID en DB, toujours gérés par logique applicative.

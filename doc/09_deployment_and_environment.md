@@ -3,7 +3,7 @@
 L'application doit fonctionner de manière automatisée lors de son déploiement ou du lancement d'outils de CI (Continuous Integration), gérés historiquement par **GitHub Actions**.
 
 ## Scripts & CI
-- Chaque phase de construction (`build`) de master lance obligatoirement un script d'`analyze` strict pour bloquer toute inclusion de `print()` (laissé dans les controllers) et de dépendances mortes.
+- Chaque phase de construction (`build`) de master lance obligatoirement un script d'`analyze` strict pour bloquer toute inclusion de `//debugPrint()` (laissé dans les controllers) et de dépendances mortes.
 - Le CI vérifiera automatiquement les erreurs syntaxiques.
 
 ## Supabase (Environnement)

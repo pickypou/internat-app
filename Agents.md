@@ -95,3 +95,14 @@ Gestion d'erreurs via des Failures explicites.
 
 ### 🚨 CONSIGNES DE NON-RÉGRESSION
 Il est formellement interdit de supprimer le bouton d'importation, le bouton d'ajout (+), ou de modifier la structure de tableaux séparés par classe sans validation. Chaque nouvelle fonctionnalité doit s'ajouter à l'existant, pas le remplacer.
+
+### 🧪 RÈGLE TDD (TEST-DRIVEN DEVELOPMENT) — PRIORITAIRE
+
+**Aucun code métier ne peut être considéré comme terminé sans son test associé au vert.**
+
+1. **Tests d'abord** : Écrire le test unitaire ou d'intégration *avant* le code de production.
+2. **Couverture obligatoire** : Toute nouvelle `UseCase`, tout service de domaine et toute logique de parsing doit avoir un test dans `test/features/[feature]/`.
+3. **Aucune régression** : Chaque PR doit passer `flutter test` sans erreur.
+4. **Périmètre minimal** : Un test doit couvrir au minimum le cas nominal + un cas limite (ex: liste vide, date hors-période).
+5. **Structure miroir** : Les fichiers de test suivent la même arborescence que `lib/src/` (ex: `lib/src/features/stages/domain/services/stage_period_service.dart` → `test/features/stages/domain/services/stage_period_service_test.dart`).
+6. **Aucun commit avec erreur** : Aucun code ne doit être poussé (commit/push) si `flutter analyze` ou `flutter test` retourne une erreur. Corriger d'abord, pousser ensuite.

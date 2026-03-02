@@ -10,4 +10,6 @@ abstract class GroupRepository {
   Future<void> createGroup(String name, String colorHex);
   Future<void> deleteGroup(String groupId);
   Future<void> renameGroup(String groupId, String newName);
+  Future<String?> getGroupIdByName(String name);
+  Future<String> ensureGroupExists(String name, String colorHex);
 }

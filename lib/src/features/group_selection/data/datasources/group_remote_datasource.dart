@@ -9,6 +9,12 @@ abstract class GroupRemoteDataSource {
   Future<void> createGroup(String name, String colorHex);
   Future<void> deleteGroup(String groupId);
   Future<void> renameGroup(String groupId, String newName);
+
+  /// Returns the group ID matching [name] (case-insensitive), or null if not found.
+  Future<String?> getGroupIdByName(String name);
+
+  /// Finds or creates a group by [name] and returns its ID.
+  Future<String> ensureGroupExists(String name, String colorHex);
 }
 
 /// Supabase implementation of the data source.
@@ -69,5 +75,33 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     } catch (e) {
       throw ServerFailure('Failed to rename group in Supabase: $e');
     }
+  }
+
+  @override
+  Future<String?> getGroupIdByName(String name) async {
+    try {
+      final response = await _supabaseClient.from('groups').select('id, name');
+      final nameKey = name.toLowerCase().trim();
+      final found = (response as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((g) => (g['name'] as String).toLowerCase().trim() == nameKey)
+          .firstOrNull;
+      return found == null ? null : found['id'] as String;
+    } catch (e) {
+      throw ServerFailure('Failed to find group by name: $e');
+    }
+  }
+
+  @override
+  Future<String> ensureGroupExists(String name, String colorHex) async {
+    final existingId = await getGroupIdByName(name);
+    if (existingId != null) return existingId;
+    // Create group and return the new ID
+    final response = await _supabaseClient
+        .from('groups')
+        .insert({'name': name, 'color': colorHex})
+        .select('id')
+        .single();
+    return response['id'] as String;
   }
 }

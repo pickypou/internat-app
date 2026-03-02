@@ -31,4 +31,14 @@ class GroupRepositoryImpl implements GroupRepository {
   Future<void> renameGroup(String groupId, String newName) async {
     return await _remoteDataSource.renameGroup(groupId, newName);
   }
+
+  @override
+  Future<String?> getGroupIdByName(String name) async {
+    return await _remoteDataSource.getGroupIdByName(name);
+  }
+
+  @override
+  Future<String> ensureGroupExists(String name, String colorHex) async {
+    return await _remoteDataSource.ensureGroupExists(name, colorHex);
+  }
 }

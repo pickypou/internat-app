@@ -39,6 +39,8 @@ import '../../features/group_selection/domain/usecases/delete_group_usecase.dart
     as _i959;
 import '../../features/group_selection/domain/usecases/get_groups_usecase.dart'
     as _i140;
+import '../../features/group_selection/domain/usecases/global_import_usecase.dart'
+    as _i791;
 import '../../features/group_selection/domain/usecases/rename_group_usecase.dart'
     as _i1052;
 import '../../features/group_selection/presentation/bloc/group_bloc.dart'
@@ -107,6 +109,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i535.GroupRepository>(
       () => _i954.GroupRepositoryImpl(gh<_i91.GroupRemoteDataSource>()),
+    );
+    gh.factory<_i791.GlobalImportUseCase>(
+      () => _i791.GlobalImportUseCase(
+        gh<_i535.GroupRepository>(),
+        gh<_i65.StudentRemoteDataSource>(),
+      ),
     );
     gh.factory<_i4.DeleteAttendanceUseCase>(
       () => _i4.DeleteAttendanceUseCase(gh<_i477.AttendanceRepository>()),
