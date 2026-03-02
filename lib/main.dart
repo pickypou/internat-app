@@ -3,34 +3,28 @@ import 'package:internat_app/src/core/di/injection.dart';
 import 'package:internat_app/src/app/routing/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'dart:developer' as dev;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint(
-      "Aucun fichier .env trouvé ou erreur de format, utilisation des variables d'environnement du système si disponibles.",
-    );
-  }
 
-  final supabaseUrl =
-      dotenv.env['SUPABASE_URL'] ??
-      const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-  final supabaseAnonKey =
-      dotenv.env['SUPABASE_ANON_KEY'] ??
-      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  // Clés injectées via --dart-define au moment du build (CI GitHub Actions).
+  // Localement : flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-  debugPrint(
-    'Loaded SUPABASE_URL: ${supabaseUrl.isNotEmpty ? 'OK' : 'MISSING'}',
+  dev.log('SUPABASE_URL: ${supabaseUrl.isNotEmpty ? 'OK' : 'MISSING'}');
+  dev.log(
+    'SUPABASE_ANON_KEY: ${supabaseAnonKey.isNotEmpty ? 'OK' : 'MISSING'}',
   );
 
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   } else {
-    debugPrint("Erreur : Clés Supabase manquantes.");
+    dev.log(
+      '[main] ERREUR : Clés Supabase manquantes — app démarrée sans connexion.',
+    );
   }
 
   await configureDependencies();
