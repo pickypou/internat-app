@@ -1,4 +1,6 @@
-Agents.md - Règles du Projet InternatApp (Version Finale)
+# Agents.md — Règles de développement InternatApp
+<!-- ci: rebuild with dart-define secrets fix (2026-03-02) -->
+ (Version Finale)
 1. Architecture & Structure (FSD + Clean Arch)
 L'application doit suivre strictement le découpage Feature-Sliced Design (FSD). Chaque feature doit être autonome et découplée.
 
