@@ -7,5 +7,6 @@ abstract class StudentRepository {
   Future<void> updateStudent(StudentEntity student);
   Future<void> deleteStudent(String studentId);
   Future<void> deleteAllStudentsByGroupId(String groupId);
+  Future<void> deleteAllStudents();
   Future<void> addStudents(List<StudentEntity> students);
 }

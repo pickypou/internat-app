@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import '../../domain/repositories/group_repository.dart';
 import '../../../students/data/datasources/student_remote_datasource.dart';
 import '../../../students/domain/entities/student_entity.dart';
+import '../../../../shared/utils/import_parser.dart';
 
 /// Result of a global import operation.
 class GlobalImportResult {
@@ -26,7 +27,11 @@ class GlobalImportResult {
 /// Parses a pasted multi-line string (tab or semicolon separated) and dispatches
 /// each student to the right group, creating the group if it doesn't exist.
 ///
-/// Expected columns per line: Nom | Prénom | Classe | Chambre | NomGroupe
+/// All line parsing is delegated to [ImportParser] (shared, DRY).
+///
+/// Supported column layouts:
+///   5 cols : Nom | Prénom | Classe | Chambre | NomGroupe
+///   4 cols : Nom Complet | Classe | Chambre | NomGroupe
 @injectable
 class GlobalImportUseCase {
   final GroupRepository _groupRepository;
@@ -56,15 +61,17 @@ class GlobalImportUseCase {
     return available[Random().nextInt(available.length)];
   }
 
-  /// Normalizes a group name: trim + capitalize first letter.
-  /// 'hugue' -> 'Hugue', 'POL-SUP' -> 'Pol-sup'
+  /// Normalize group name: 'hugue' → 'Hugue', 'POL-SUP' → 'Pol-sup'
   String _normalizeName(String raw) {
     final t = raw.trim();
     if (t.isEmpty) return t;
     return t[0].toUpperCase() + t.substring(1).toLowerCase();
   }
 
-  Future<GlobalImportResult> call(String rawText) async {
+  Future<GlobalImportResult> call(
+    String rawText, {
+    bool clearDatabase = false,
+  }) async {
     final lines = rawText
         .split('\n')
         .where((l) => l.trim().isNotEmpty)
@@ -72,6 +79,11 @@ class GlobalImportUseCase {
 
     if (lines.isEmpty) {
       return const GlobalImportResult(imported: 0, skipped: 0, errors: []);
+    }
+
+    if (clearDatabase) {
+      dev.log('[GlobalImport] Clearing students database before import');
+      await _studentDataSource.deleteAllStudents();
     }
 
     // Load existing groups once
@@ -83,7 +95,6 @@ class GlobalImportUseCase {
     final usedColors = existingGroups
         .map((g) => g.color.toUpperCase())
         .toList();
-    // Cache: groupNameLower → groupId
     final groupIdCache = <String, String>{
       for (final g in existingGroups) g.name.toLowerCase().trim(): g.id,
     };
@@ -95,36 +106,13 @@ class GlobalImportUseCase {
     for (final line in lines) {
       lineIndex++;
       try {
-        final parts = line.contains('\t') ? line.split('\t') : line.split(';');
-
-        final lastName = parts.isNotEmpty ? parts[0].trim() : '';
-        final firstName = parts.length > 1 ? parts[1].trim() : '';
-        final className = parts.length > 2 ? parts[2].trim() : '';
-        final roomNumber = parts.length > 3 ? parts[3].trim() : '';
-        final groupName = parts.length > 4 ? parts[4].trim() : '';
-
-        dev.log(
-          '[GlobalImport] Line $lineIndex: lastName="$lastName" firstName="$firstName" group="$groupName"',
-        );
-
-        if (lastName.isEmpty || firstName.isEmpty) {
-          dev.log(
-            '[GlobalImport] Line $lineIndex SKIPPED: missing Nom or Prénom',
-          );
-          skippedLines.add('Ligne $lineIndex: Nom ou Prénom manquant');
-          continue;
-        }
+        // Extract group name first — needed before delegating to ImportParser
+        final groupName = ImportParser.extractGroupName(line);
         if (groupName.isEmpty) {
-          dev.log(
-            '[GlobalImport] Line $lineIndex SKIPPED: missing Groupe column',
-          );
-          skippedLines.add(
-            'Ligne $lineIndex ($lastName $firstName): colonne Groupe manquante',
-          );
+          skippedLines.add('Ligne $lineIndex : colonne Groupe manquante');
           continue;
         }
 
-        // Normalize: 'hugue' / 'HUGUE' / 'Hugue' all → 'Hugue'
         final canonicalName = _normalizeName(groupName);
         final groupKey = canonicalName.toLowerCase();
 
@@ -132,44 +120,46 @@ class GlobalImportUseCase {
           final color = _randomColor(usedColors);
           usedColors.add(color);
           dev.log(
-            '[GlobalImport] Creating/finding group "$canonicalName" with color #$color',
+            '[GlobalImport] Creating group "$canonicalName" color #$color',
           );
           final newId = await _groupRepository.ensureGroupExists(
             canonicalName,
             color,
           );
           groupIdCache[groupKey] = newId;
-          dev.log(
-            '[GlobalImport] Group "$canonicalName" resolved to id=$newId',
-          );
+          dev.log('[GlobalImport] Group "$canonicalName" → id=$newId');
         }
 
-        students.add(
-          StudentEntity(
-            id: '',
-            firstName: firstName,
-            lastName: lastName,
-            roomNumber: roomNumber,
-            className: className,
-            groupId: groupIdCache[groupKey]!,
-          ),
+        // Delegate line parsing to shared ImportParser
+        final parsed = ImportParser.parseLine(
+          line,
+          groupIdCache[groupKey]!,
+          lineIndex,
         );
+        if (!parsed.isValid) {
+          dev.log('[GlobalImport] Line $lineIndex SKIPPED: ${parsed.error}');
+          skippedLines.add(parsed.error!);
+          continue;
+        }
+
+        dev.log(
+          '[GlobalImport] Line $lineIndex OK: ${parsed.student!.lastName} ${parsed.student!.firstName}',
+        );
+        students.add(parsed.student!);
       } catch (e, stack) {
         dev.log('[GlobalImport] Line $lineIndex ERROR: $e\n$stack');
-        skippedLines.add('Ligne $lineIndex: erreur inattendue ($e)');
+        skippedLines.add('Ligne $lineIndex : erreur inattendue ($e)');
       }
     }
 
     dev.log(
-      '[GlobalImport] Parsed ${students.length} valid students, ${skippedLines.length} skipped',
+      '[GlobalImport] Parsed ${students.length} valid, ${skippedLines.length} skipped',
     );
 
     if (students.isNotEmpty) {
       try {
         await _studentDataSource.addStudents(students);
-        dev.log(
-          '[GlobalImport] Upsert successful for ${students.length} students',
-        );
+        dev.log('[GlobalImport] Upsert OK for ${students.length} students');
       } catch (e, stack) {
         dev.log('[GlobalImport] UPSERT ERROR: $e\n$stack');
         rethrow;

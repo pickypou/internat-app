@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:internat_app/src/core/di/injection.dart';
 import 'package:internat_app/src/features/stages/domain/usecases/calendar_import_usecase.dart';
+import 'package:internat_app/src/shared/theme/app_colors.dart';
 import 'package:internat_app/src/shared/theme/theme_ext.dart';
+import 'package:internat_app/src/shared/widgets/import_paste_field.dart';
 
-/// Bottom sheet for importing stage / alternance calendar periods.
-/// Same UX as GlobalImportSheet for students.
-///
-/// Expected paste format (tab-separated):
-///   Class \t Type \t StartDate(DD/MM/YYYY) \t EndDate(DD/MM/YYYY)
-///   3eme-A \t STAGE \t 02/03/2026 \t 15/03/2026
+/// Bottom sheet for importing calendar periods (PRESENCE / STAGE / ALTERNANCE).
+/// Tab-separated: Classe | Type | Début (DD/MM/YYYY) | Fin (DD/MM/YYYY)
 class CalendarImportSheet extends StatefulWidget {
   const CalendarImportSheet({super.key});
 
@@ -50,7 +48,7 @@ class _CalendarImportSheetState extends State<CalendarImportSheet> {
             ? '✅ ${result.imported} période(s) importée(s)\n'
                   '⚠️ ${result.skipped} ligne(s) ignorée(s) :\n'
                   '${result.errors.join('\n')}'
-            : '✅ ${result.imported} période(s) imortée(s) avec succès !';
+            : '✅ ${result.imported} période(s) importée(s) avec succès !';
       });
 
       if (!hasErrors) {
@@ -69,10 +67,6 @@ class _CalendarImportSheetState extends State<CalendarImportSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = const Color(
-      0xFF00BFA5,
-    ); // teal — distinct from blue of students import
-
     return Container(
       decoration: BoxDecoration(
         color: context.colorScheme.surface,
@@ -92,14 +86,18 @@ class _CalendarImportSheetState extends State<CalendarImportSheet> {
             // ── Titre ──
             Row(
               children: [
-                Icon(Icons.calendar_view_day, color: accent, size: 28),
+                const Icon(
+                  Icons.calendar_view_day,
+                  color: AppColors.teal,
+                  size: 28,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Importer Calendrier',
                     style: context.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: accent,
+                      color: AppColors.teal,
                     ),
                   ),
                 ),
@@ -109,46 +107,18 @@ class _CalendarImportSheetState extends State<CalendarImportSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // ── Instructions ──
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: accent.withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                'Collez votre tableau (séparateur : Tabulation)\n'
-                'Colonnes : Classe | Type | Début (JJ/MM/AAAA) | Fin (JJ/MM/AAAA)\n\n'
-                'Ex : 3eme-A\tSTAGE\t02/03/2026\t15/03/2026',
-                style: context.textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                  color: context.colorScheme.onSurface.withValues(alpha: 0.75),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Zone de texte ──
-            TextField(
+            // ── Champ de collage (shared widget) ──
+            ImportPasteField(
               controller: _controller,
-              minLines: 5,
-              maxLines: 12,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-              decoration: InputDecoration(
-                hintText:
-                    '3eme-A\tSTAGE\t02/03/2026\t15/03/2026\n3eme-B\tSTAGE\t09/03/2026\t20/03/2026',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accent),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accent, width: 2),
-                ),
-              ),
+              accentColor: AppColors.teal,
+              instruction:
+                  'Colonnes : Classe | Type | Début (JJ/MM/AAAA) | Fin (JJ/MM/AAAA)\n'
+                  'Types : PRESENCE, STAGE, ALTERNANCE',
+              hint:
+                  '3eme-A\tSTAGE\t02/03/2026\t15/03/2026\n'
+                  'BTS-1\tPRESENCE\t20/08/2025\t05/09/2025',
             ),
             const SizedBox(height: 16),
 
@@ -188,7 +158,7 @@ class _CalendarImportSheetState extends State<CalendarImportSheet> {
                   : const Icon(Icons.upload),
               label: Text(_isLoading ? 'Import en cours…' : 'Importer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
+                backgroundColor: AppColors.teal,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

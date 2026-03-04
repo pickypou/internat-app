@@ -38,6 +38,11 @@ class StudentRepositoryImpl implements StudentRepository {
   }
 
   @override
+  Future<void> deleteAllStudents() async {
+    return _remoteDataSource.deleteAllStudents();
+  }
+
+  @override
   Future<void> addStudents(List<StudentEntity> students) async {
     return await _remoteDataSource.addStudents(students);
   }

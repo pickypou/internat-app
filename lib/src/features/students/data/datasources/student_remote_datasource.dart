@@ -15,6 +15,7 @@ abstract class StudentRemoteDataSource {
   Future<void> updateStudent(StudentEntity student);
   Future<void> deleteStudent(String studentId);
   Future<void> deleteAllStudentsByGroupId(String groupId);
+  Future<void> deleteAllStudents();
   Future<void> addStudents(List<StudentEntity> students);
 }
 
@@ -134,6 +135,20 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
       await _supabaseClient.from('students').delete().eq('group_id', groupId);
     } catch (e) {
       throw ServerFailure('Failed to delete students for group: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteAllStudents() async {
+    try {
+      // Supabase trick to delete all rows: neq uuid a non-existing uuid,
+      // or filtering for id is not null.
+      await _supabaseClient
+          .from('students')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (e) {
+      throw ServerFailure('Failed to delete all students: $e');
     }
   }
 

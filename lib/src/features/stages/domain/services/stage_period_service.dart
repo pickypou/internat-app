@@ -21,7 +21,6 @@ class StagePeriodService {
     final classKey = className.toLowerCase().trim();
     final d = _dateOnly(date);
 
-    StagePeriodEntity? foundStage;
     StagePeriodEntity? foundPresence;
 
     for (final p in periods) {
@@ -32,15 +31,14 @@ class StagePeriodService {
 
       final t = p.type.toUpperCase();
       if (t == 'STAGE' || t == 'ALTERNANCE') {
-        foundStage = p;
+        return 'STAGE'; // hidden — both types treated the same by the filter
       } else if (t == 'PRESENCE') {
         foundPresence = p;
       }
     }
 
-    if (foundStage != null) return 'STAGE';
     if (foundPresence != null) return 'PRESENT';
-    return 'HORS_QUINZAINE';
+    return 'HORS_QUINZAINE'; // no period for this date → show normally
   }
 
   /// Returns true if [className] has an active STAGE/ALTERNANCE on [date].

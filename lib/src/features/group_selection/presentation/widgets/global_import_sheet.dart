@@ -1,11 +1,12 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import '../../../../shared/theme/theme_ext.dart';
+import '../../../../shared/widgets/import_paste_field.dart';
 import '../../../../core/di/injection.dart';
 import '../../domain/usecases/global_import_usecase.dart';
 
 /// Modal bottom sheet for global import of students from Excel copy-paste.
-/// Columns: Nom | Prénom | Classe | Chambre | Groupe  (tab or semicolon)
+/// Supports 4-column and 5-column layouts (delegated to ImportParser).
 class GlobalImportSheet extends StatefulWidget {
   const GlobalImportSheet({super.key});
 
@@ -16,6 +17,7 @@ class GlobalImportSheet extends StatefulWidget {
 class _GlobalImportSheetState extends State<GlobalImportSheet> {
   final _controller = TextEditingController();
   bool _loading = false;
+  bool _clearDb = true; // default to true to help him clear existing messy data
 
   @override
   void dispose() {
@@ -33,12 +35,14 @@ class _GlobalImportSheetState extends State<GlobalImportSheet> {
     Navigator.of(context).pop();
 
     try {
-      final result = await getIt<GlobalImportUseCase>()(text);
+      final result = await getIt<GlobalImportUseCase>()(
+        text,
+        clearDatabase: _clearDb,
+      );
       dev.log('[GlobalImportSheet] Import done: ${result.summary}');
 
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ ${result.summary}'),
           backgroundColor: Colors.green.shade700,
@@ -60,6 +64,7 @@ class _GlobalImportSheetState extends State<GlobalImportSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(
@@ -74,36 +79,55 @@ class _GlobalImportSheetState extends State<GlobalImportSheet> {
         children: [
           Row(
             children: [
-              const Icon(Icons.upload_file),
+              Icon(Icons.upload_file, color: accent),
               const SizedBox(width: 10),
-              Text(
-                'Import global depuis Excel',
-                style: context.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'Import global depuis Excel',
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Colle le tableau Excel ci-dessous.\nColonnes : Nom | Prénom | Classe | Chambre | Groupe',
-            style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
           const SizedBox(height: 12),
-          TextField(
+
+          ImportPasteField(
             controller: _controller,
-            maxLines: 10,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText:
-                  'DUPONT\tJean\t3A\t12\tHugue\nMARTIN\tLucie\t2B\t5\tCassandra',
-              border: OutlineInputBorder(),
-              filled: true,
-            ),
+            accentColor: accent,
+            instruction:
+                'Format 5 cols : Nom | Prénom | Classe | Chambre | Groupe\n'
+                'Format 4 cols : Nom Complet | Classe | Chambre | Groupe\n'
+                'Format 2 cols : Nom | Prénom',
+            hint:
+                'DUPONT\tJean\t3A\t12\tHugue\n'
+                'MARTIN Lucie\t2B\t14\tHugue',
           ),
           const SizedBox(height: 12),
+
+          CheckboxListTile(
+            value: _clearDb,
+            onChanged: (val) {
+              if (val != null) setState(() => _clearDb = val);
+            },
+            title: Text(
+              'Vider la base de données avant l\'import',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colorScheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: const Text(
+              'Attention: Action irréversible. Tous les élèves actuels du système seront supprimés.',
+              style: TextStyle(fontSize: 12),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: context.colorScheme.error,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 12),
+
           ElevatedButton.icon(
             onPressed: _loading ? null : _submit,
             icon: _loading

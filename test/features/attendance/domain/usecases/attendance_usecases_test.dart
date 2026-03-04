@@ -4,6 +4,7 @@ import 'package:internat_app/src/features/attendance/domain/repositories/attenda
 import 'package:internat_app/src/features/attendance/domain/usecases/get_attendances_usecase.dart';
 import 'package:internat_app/src/features/attendance/domain/usecases/save_attendance_usecase.dart';
 import 'package:internat_app/src/features/attendance/domain/usecases/delete_attendance_usecase.dart';
+import 'package:internat_app/src/features/attendance/domain/entities/attendance_archive_entity.dart';
 
 // ── Manual stub ───────────────────────────────────────────────────────────────
 class _FakeAttendanceRepository implements AttendanceRepository {
@@ -61,6 +62,24 @@ class _FakeAttendanceRepository implements AttendanceRepository {
   Future<void> deleteAttendance(String id) async {
     lastDeletedId = id;
     _records.removeWhere((a) => a.id == id);
+  }
+
+  @override
+  Future<List<AttendanceArchiveEntity>> archiveAndResetLycee(
+    DateTime startDate,
+    DateTime endDate,
+    String periodLabel,
+  ) async {
+    return [];
+  }
+
+  @override
+  Future<List<AttendanceArchiveEntity>> archiveAndResetPolSup(
+    DateTime startDate,
+    DateTime endDate,
+    String periodLabel,
+  ) async {
+    return [];
   }
 }
 

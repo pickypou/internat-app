@@ -58,8 +58,14 @@ class _FakeStudentRepository implements StudentRepository {
 
   @override
   Future<void> deleteAllStudentsByGroupId(String groupId) async {
-    lastDeletedGroupId = groupId;
+    lastDeletedGroupId =
+        groupId; // Kept this line for consistency with other delete methods
     _students.removeWhere((s) => s.groupId == groupId);
+  }
+
+  @override
+  Future<void> deleteAllStudents() async {
+    _students.clear();
   }
 
   @override

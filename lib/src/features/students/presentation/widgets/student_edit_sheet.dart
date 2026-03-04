@@ -250,7 +250,7 @@ class _StudentEditSheetState extends State<StudentEditSheet> {
                       ),
                     )
                   : DropdownButtonFormField<String>(
-                      value: _selectedGroupId,
+                      initialValue: _selectedGroupId,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),

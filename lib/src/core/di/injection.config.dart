@@ -19,6 +19,8 @@ import '../../features/attendance/data/repositories/attendance_repository_impl.d
     as _i719;
 import '../../features/attendance/domain/repositories/attendance_repository.dart'
     as _i477;
+import '../../features/attendance/domain/usecases/archive_attendance_usecases.dart'
+    as _i165;
 import '../../features/attendance/domain/usecases/delete_attendance_usecase.dart'
     as _i4;
 import '../../features/attendance/domain/usecases/get_attendances_usecase.dart'
@@ -156,6 +158,13 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i981.StagePeriodRepositoryImpl(
         gh<_i880.StagePeriodRemoteDataSource>(),
       ),
+    );
+    gh.factory<_i165.ArchiveAndResetLyceeUseCase>(
+      () => _i165.ArchiveAndResetLyceeUseCase(gh<_i477.AttendanceRepository>()),
+    );
+    gh.factory<_i165.ArchiveAndResetPolSupUseCase>(
+      () =>
+          _i165.ArchiveAndResetPolSupUseCase(gh<_i477.AttendanceRepository>()),
     );
     gh.factory<_i483.GetAttendancesUseCase>(
       () => _i483.GetAttendancesUseCase(gh<_i477.AttendanceRepository>()),

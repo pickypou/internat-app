@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
-import '../../../../core/preferences/preferences_service.dart';
 import '../../../../shared/theme/theme_ext.dart';
 import '../../../students/domain/entities/student_entity.dart';
 import '../../domain/entities/attendance_entity.dart';
@@ -20,9 +19,13 @@ import '../../../students/domain/usecases/delete_students_by_group_usecase.dart'
 import '../../../stages/domain/entities/stage_period_entity.dart';
 import '../../../stages/domain/services/stage_period_service.dart';
 import '../../../stages/domain/usecases/get_stage_periods_usecase.dart';
+import '../../domain/usecases/archive_attendance_usecases.dart';
+import '../../domain/entities/attendance_archive_entity.dart';
+import '../../domain/services/pdf_service.dart';
 
 enum TableColumn {
   classe('Classe'),
+  chambre('Chambre'),
   lundi('Lun'),
   mardi('Mar'),
   mercredi('Mer'),
@@ -30,7 +33,6 @@ enum TableColumn {
   vendredi('Ven'),
   samedi('Sam'),
   dimanche('Dim'),
-  chambre('Chambre'),
   note('Note');
   // checkbox('Bus');
 
@@ -64,8 +66,6 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
 
   List<TableColumn> _columns = TableColumn.values.toList();
   final Set<TableColumn> _expandedColumns = {};
-  final Map<String, bool> _expandedClasses = {};
-
   // ── Calendrier (periods) ──────────────────────────────────────────────────
   List<StagePeriodEntity> _periods = [];
   bool _showAll = false; // override: show all students regardless of period
@@ -102,20 +102,12 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
   }
 
   Future<void> _loadColumnOrder() async {
-    final prefs = getIt<PreferencesService>();
-    final saved = await prefs.getColumnOrder();
-    if (saved != null && saved.isNotEmpty) {
-      setState(() {
-        _columns = saved
-            .map((name) => TableColumn.values.firstWhere((e) => e.name == name))
-            .toList();
-      });
-    }
+    // Disabled preferences loading to definitively fix column alignment for users.
+    // Order is strictly given by TableColumn.values.
   }
 
   Future<void> _saveColumnOrder() async {
-    final prefs = getIt<PreferencesService>();
-    await prefs.saveColumnOrder(_columns.map((e) => e.name).toList());
+    // Disabled saving preferences
   }
 
   @override
@@ -268,110 +260,34 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
               itemBuilder: (context, index) {
                 final item = listItems[index];
 
-                if (item is Map) {
-                  // Class Header
-                  final className = item['class'] as String;
-                  final classStatus = item['status'] as String? ?? 'PRESENT';
-                  final isExpanded = _expandedClasses[className] ?? true;
-                  final badgeColor = classStatus == 'STAGE'
-                      ? Colors.orange
-                      : classStatus == 'HORS_QUINZAINE'
-                      ? Colors.blue
-                      : null;
-                  final badgeLabel = classStatus == 'STAGE'
-                      ? '🟠 STAGE'
-                      : classStatus == 'HORS_QUINZAINE'
-                      ? '🔵 HORS'
-                      : null;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _expandedClasses[className] = !isExpanded;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(
-                        color: groupColor.withValues(alpha: 0.2),
-                        border: Border(
-                          right: BorderSide(
-                            color: groupColor.withValues(alpha: 0.8),
-                            width: 1.5,
-                          ),
-                          bottom: BorderSide(
-                            color: groupColor.withValues(alpha: 0.8),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isExpanded
-                                ? Icons.expand_more
-                                : Icons.chevron_right,
-                            size: 18,
-                          ),
-                          Expanded(
-                            child: Text(
-                              className,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (badgeLabel != null)
-                            Container(
-                              margin: const EdgeInsets.only(right: 4),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeColor?.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: badgeColor!),
-                              ),
-                              child: Text(
-                                badgeLabel,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: badgeColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                } else if (item is StudentEntity) {
-                  final student = item;
+                if (item is StudentEntity) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.only(left: 10, right: 8),
                     alignment: Alignment.centerLeft,
                     decoration: BoxDecoration(
                       border: Border(
-                        right: BorderSide(
-                          color: groupColor.withValues(alpha: 0.8),
-                          width: 1.5,
-                        ),
+                        left: BorderSide(color: groupColor, width: 3),
                         bottom: BorderSide(
-                          color: groupColor.withValues(alpha: 0.8),
-                          width: 1.5,
+                          color: groupColor.withValues(alpha: 0.3),
+                          width: 1,
                         ),
                       ),
                     ),
-                    child: Text(
-                      '${student.lastName.toUpperCase()} ${student.firstName}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                    child: GestureDetector(
+                      onTap: () => _showNoteModal(
+                        context,
+                        item,
+                        attendances,
+                        groupColor,
+                      ),
+                      child: Text(
+                        '${item.lastName.toUpperCase()} ${item.firstName}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   );
@@ -474,20 +390,7 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
                   itemBuilder: (context, index) {
                     final item = listItems[index];
 
-                    if (item is Map) {
-                      // Class header row background
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: groupColor.withValues(alpha: 0.2),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: groupColor.withValues(alpha: 0.8),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                      );
-                    } else if (item is StudentEntity) {
+                    if (item is StudentEntity) {
                       final student = item;
                       final todayAtt = attendances
                           .where((a) => a.studentId == student.id)
@@ -723,7 +626,132 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
-                if (value == 'clear_students') {
+                if (value == 'archive_lycee' || value == 'archive_polsup') {
+                  final isLycee = value == 'archive_lycee';
+                  final title = isLycee
+                      ? 'Clôturer la semaine Lycée'
+                      : 'Clôturer la quinzaine Pôle-Sup';
+                  final content = isLycee
+                      ? 'Cette action va archiver les présences de TOUS LES GROUPES SAUF Pôle-Sup et vider le tableau pour la nouvelle semaine. Procéder ?'
+                      : 'Cette action va archiver UNIQUEMENT les présences du groupe Pôle-Sup et vider leur tableau pour la nouvelle quinzaine. Procéder ?';
+
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(title),
+                      content: Text(content),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Annuler'),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: parsedColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Archiver et Vider'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true && context.mounted) {
+                    try {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
+
+                      // For Lycée, we assume Monday -> Friday of current week
+                      // For Pol-Sup, assume 14 days ago up to now.
+                      // Simple generic approach: start date is 7 or 14 days before the current selected date.
+                      final endDate = _selectedDate;
+                      final startDate = endDate.subtract(
+                        Duration(days: isLycee ? 7 : 14),
+                      );
+
+                      final format = DateFormat('dd/MM/yyyy');
+                      late String periodLabel;
+
+                      if (isLycee) {
+                        // Date_Dimanche = dimanche précédant _selectedDate
+                        final sunday = endDate.subtract(
+                          Duration(days: endDate.weekday % 7),
+                        );
+                        // Date_Vendredi = le vendredi de cette même semaine
+                        final friday = sunday.add(const Duration(days: 5));
+                        periodLabel =
+                            'LYCÉE : ${format.format(sunday)} au ${format.format(friday)}';
+                      } else {
+                        // Date_Dimanche = 2 semaines avant
+                        final sundayS = endDate.subtract(
+                          Duration(days: (endDate.weekday % 7) + 7),
+                        );
+                        // Date_Vendredi_S+1 = le vendredi de la semaine suivante (+12 jours)
+                        final fridayS1 = sundayS.add(const Duration(days: 12));
+                        periodLabel =
+                            'POL-SUP : ${format.format(sundayS)} au ${format.format(fridayS1)}';
+                      }
+
+                      List<AttendanceArchiveEntity> archives = [];
+
+                      if (isLycee) {
+                        archives = await getIt<ArchiveAndResetLyceeUseCase>()(
+                          startDate: startDate,
+                          endDate: endDate,
+                          periodLabel: periodLabel,
+                        );
+                      } else {
+                        archives = await getIt<ArchiveAndResetPolSupUseCase>()(
+                          startDate: startDate,
+                          endDate: endDate,
+                          periodLabel: periodLabel,
+                        );
+                      }
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop(); // hide loader
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Archivage réussi : les présences de ce flux ont été réinitialisées.',
+                            ),
+                          ),
+                        );
+                        context.read<AttendanceBloc>().add(
+                          LoadAttendance(widget.groupId, _selectedDate),
+                        );
+                      }
+
+                      // Show PDF Dialog outside of context mounting strictness
+                      if (archives.isNotEmpty) {
+                        final safeFilename = periodLabel
+                            .replaceAll(':', '')
+                            .replaceAll('/', '-')
+                            .replaceAll(' ', '_');
+                        final pdfBytes = await PdfService.generateArchivePdf(
+                          archives,
+                          periodLabel,
+                        );
+                        await PdfService.printPdf(
+                          pdfBytes,
+                          '$safeFilename.pdf',
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop(); // hide loader
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                      }
+                    }
+                  }
+                } else if (value == 'clear_students') {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
@@ -764,6 +792,27 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(
+                  value: 'archive_lycee',
+                  child: Row(
+                    children: [
+                      Icon(Icons.archive),
+                      SizedBox(width: 8),
+                      Text('Clôturer semaine (Lycée)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'archive_polsup',
+                  child: Row(
+                    children: [
+                      Icon(Icons.archive),
+                      SizedBox(width: 8),
+                      Text('Clôturer quinzaine (Pol-Sup)'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
                   value: 'clear_students',
                   child: Row(
                     children: [
@@ -788,54 +837,25 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
             } else if (state is AttendanceError) {
               return Center(child: Text(state.message));
             } else if (state is AttendanceLoaded) {
-              // Group students by class, with period status
-              final Map<String, List<StudentEntity>> studentsByClass = {};
-              for (final student in state.students) {
-                final cName = student.className.isEmpty
-                    ? 'Sans classe'
-                    : student.className;
-
-                // Calendar filtering: skip if class is not PRESENT and not _showAll
-                if (!_showAll && _periods.isNotEmpty) {
-                  final status = StagePeriodService.classStatusOn(
-                    cName,
-                    _selectedDate,
-                    _periods,
-                  );
-                  if (status == 'HORS_QUINZAINE' || status == 'STAGE') {
-                    // Still add, but with badge — handled in header rendering
-                  }
-                }
-                studentsByClass.putIfAbsent(cName, () => []).add(student);
-              }
-              final sortedClasses = studentsByClass.keys.toList()..sort();
-
-              final List<dynamic> listItems = [];
-              for (final cName in sortedClasses) {
-                // Compute class status
-                final classStatus = _periods.isEmpty
-                    ? 'PRESENT'
-                    : StagePeriodService.classStatusOn(
-                        cName,
-                        _selectedDate,
-                        _periods,
-                      );
-
-                // Skip entire class if not showAll and class is hidden
-                if (!_showAll &&
-                    _periods.isNotEmpty &&
-                    classStatus != 'PRESENT') {
-                  // Don't add to listItems — class is hidden
-                  continue;
-                }
-
-                // Pass a Map as header so we can render badge
-                listItems.add({'class': cName, 'status': classStatus});
-                final isExpanded = _expandedClasses[cName] ?? true;
-                if (isExpanded) {
-                  listItems.addAll(studentsByClass[cName]!);
-                }
-              }
+              // ── Flat list: all students of this group, sorted A-Z ──────────
+              final List<StudentEntity> listItems =
+                  state.students.where((student) {
+                    // Filter out students whose class is explicitly STAGE/ALTERNANCE
+                    if (_showAll || _periods.isEmpty) return true;
+                    final status = StagePeriodService.classStatusOn(
+                      student.className.isEmpty
+                          ? 'Sans classe'
+                          : student.className,
+                      _selectedDate,
+                      _periods,
+                    );
+                    return status != 'STAGE';
+                  }).toList()..sort((a, b) {
+                    final last = a.lastName.compareTo(b.lastName);
+                    return last != 0
+                        ? last
+                        : a.firstName.compareTo(b.firstName);
+                  });
 
               // Reset scroll controllers if needed, but best not to touch on rebuild
               return Row(

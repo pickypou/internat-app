@@ -1,5 +1,6 @@
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/attendance_entity.dart';
+import '../../domain/entities/attendance_archive_entity.dart';
 import '../../domain/repositories/attendance_repository.dart';
 import '../datasources/attendance_remote_datasource.dart';
 
@@ -24,6 +25,32 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   @override
   Future<void> deleteAttendance(String id) async {
-    return await _remoteDataSource.deleteAttendance(id);
+    await _remoteDataSource.deleteAttendance(id);
+  }
+
+  @override
+  Future<List<AttendanceArchiveEntity>> archiveAndResetLycee(
+    DateTime startDate,
+    DateTime endDate,
+    String periodLabel,
+  ) async {
+    return await _remoteDataSource.archiveAndResetLycee(
+      startDate,
+      endDate,
+      periodLabel,
+    );
+  }
+
+  @override
+  Future<List<AttendanceArchiveEntity>> archiveAndResetPolSup(
+    DateTime startDate,
+    DateTime endDate,
+    String periodLabel,
+  ) async {
+    return await _remoteDataSource.archiveAndResetPolSup(
+      startDate,
+      endDate,
+      periodLabel,
+    );
   }
 }

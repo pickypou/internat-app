@@ -68,7 +68,14 @@ class _FakeStudentDataSource implements StudentRemoteDataSource {
   Future<void> deleteStudent(String studentId) async {}
 
   @override
-  Future<void> deleteAllStudentsByGroupId(String groupId) async {}
+  Future<void> deleteAllStudentsByGroupId(String groupId) async {
+    added.removeWhere((s) => s.groupId == groupId);
+  }
+
+  @override
+  Future<void> deleteAllStudents() async {
+    added.clear();
+  }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
