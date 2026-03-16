@@ -11,9 +11,11 @@ lib/
     ├── core/
     │   └── di/                        # GetIt + Injectable (injection.dart, injection.config.dart)
     ├── features/
+    │   ├── admin/
+    │   │   ├── admin_module.dart      # Router configuration pour `/admin`
+    │   │   └── presentation/pages/    # AdminPage (Boutons d'import, clôture, etc.)
     │   ├── home/
-    │   │   └── presentation/pages/    # HomePage (AppBar + grille de groupes + FAB)
-    │   ├── group_selection/
+    │   │   └── presentation/pages/    # HomePage (AppBar + grille de groupes)
     │   │   ├── domain/
     │   │   │   ├── entities/          # GroupEntity
     │   │   │   ├── repositories/      # GroupRepository (interface)

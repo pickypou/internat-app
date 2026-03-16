@@ -1,110 +1,296 @@
 # Agents.md — Règles de développement InternatApp
-<!-- ci: rebuild with dart-define secrets fix (2026-03-02) -->
- (Version Finale)
-1. Architecture & Structure (FSD + Clean Arch)
-L'application doit suivre strictement le découpage Feature-Sliced Design (FSD). Chaque feature doit être autonome et découplée.
+<1. 🏗️ Architecture Générale (FSD + Clean Architecture)
 
-1.2. Anatomie d'une Feature (FSD + Clean Arch)
-Chaque dossier dans src/features/[name]/ doit suivre cette structure :
+L'application suit strictement :
 
-domain/ : Le cœur de la feature (Indépendant de tout).
+Feature-Sliced Design (FSD)
 
-entities/ : Modèles de données métier.
+Clean Architecture
 
-failures/ : Gestion des erreurs métier.
+Séparation stricte Domain / Data / Presentation
 
-repositories/ : Interfaces (abstract classes) des dépôts.
+Chaque feature doit être :
 
-usecases/ : Logique métier spécifique (une classe par action).
+Autonome
 
-data/ : L'implémentation technique.
+Découplée
 
-datasources/ : Appels directs à Supabase.
+Testable indépendamment
 
-models/ : DTO (Data Transfer Objects) avec fromJson/toJson.
+Sans dépendance vers une autre feature
 
-repositories/ : Implémentations concrètes (ex: group_repository_impl.dart).
+1.2 Structure Obligatoire d'une Feature
 
-presentation/ : L'interface utilisateur.
+lib/src/features/[feature_name]/
 
-bloc/ : Logic (Bloc, Event, State).
+domain/
+ ├── entities/
+ ├── failures/
+ ├── repositories/
+ ├── services/
+ └── usecases/
 
-pages/ : Les écrans de la feature.
+data/
+ ├── datasources/
+ ├── models/
+ └── repositories/
 
-widgets/ : Composants privés à cette feature.
+presentation/
+ ├── bloc/
+ ├── pages/
+ └── widgets/
 
-module.dart : Configuration du GoRouter pour cette feature spécifique.
+module.dart
+1.3 Règles Fondamentales
 
-2. Injection de Dépendances (DI)
-Utilisation stricte de GetIt et Injectable.
+Le Domain ne dépend d'aucune autre couche.
 
-Chaque Repository ou Service doit être annoté avec @injectable ou @lazySingleton.
+Le Data implémente uniquement les interfaces du Domain.
 
-L'initialisation se fait dans src/core/di/injection.dart.
+La Presentation ne connaît jamais Supabase directement.
 
-3. State Management (Bloc Pattern)
-Utilisation exclusive de flutter_bloc avec equatable pour l'immuabilité.
+Aucun import croisé entre features.
 
-Séparation stricte : Events, States, et Bloc.
+Toute logique métier doit vivre dans domain/.
 
-La logique de navigation ne doit pas être dans le Bloc (utiliser les callbacks ou les listeners).
+2. 💉 Injection de Dépendances (DI)
 
-4. Règles de Code & UI (DRY & Responsive)
-Abstraction des Widgets (DRY) : Tout widget utilisé plus de deux fois doit être extrait dans src/shared/widgets/ avec le préfixe Custom (ex: CustomCard).
+Utilisation obligatoire de GetIt + Injectable
 
-Thématisation : Interdiction de hardcoder des couleurs ou des polices. Utiliser context.textTheme ou Theme.of(context).
+Aucun new manuel dans l'application
 
-Branding : Respecter le thème sombre (background #121212) et les polices (Titres: Roboto, Corps: Lato).
+Tous les services doivent être annotés :
 
-Langues : Code en Anglais, Interface en Français.
+@injectable
+@lazySingleton
+@singleton
 
-5. Documentation Obligatoire
-L'agent doit maintenir à jour le dossier doc/ à chaque évolution majeure :
+Configuration centralisée dans :
 
-README.md : Point d'entrée avec liens vers la doc.
+lib/src/core/di/injection.dart
+3. 🧠 State Management (Bloc Pattern Strict)
 
-01_functional_overview.md : Flux métier.
+flutter_bloc obligatoire
 
-02_technical_architecture.md : Détails FSD/Clean Arch.
+equatable obligatoire
 
-03_project_structure.md : Arborescence lib/.
+1 Bloc = 1 responsabilité
 
-04_dependency_injection.md : Configuration GetIt.
+Interdictions
 
-05_firebase_backend.md : Setup Firebase/Supabase.
+❌ Pas de logique métier dans l'UI
 
-07_security.md : Règles RLS.
+❌ Pas de navigation dans le Bloc
 
-08_testing_strategy.md : Stratégie de test.
+❌ Pas d'appel API dans le Bloc
 
-09_deployment_and_environment.md : CI/CD GitHub Actions.
+Navigation via :
 
-6. Data & Erreurs
-Interactions Supabase via supabase_flutter.
+BlocListener
 
-Pas d'appels API directs dans l'UI.
+Callbacks UI
 
-Gestion d'erreurs via des Failures explicites.
+4. 🧱 Règles DRY & Architecture Métier
+4.1 Anti-duplication
 
+Toute fonction utilisée plus d'une fois doit être :
 
-### 🛡️ RÈGLES DE PRÉSERVATION (STRICTES)
+Transformée en Service métier
+OU
 
-1. Interdiction de Suppression : Ne jamais supprimer un élément d'UI existant (boutons, icônes d'import, colonnes) sans une demande explicite de l'utilisateur.
-2. Persistance des Fonctions : Le bouton d'ajout manuel (+), l'icône d'importation massive et le système de tri alphabétique doivent être maintenus à chaque itération.
-3. Structure du Tableau : La vue par classes (Tableaux séparés et repliables) est la structure de référence. Ne pas revenir à une liste simple.
-4. Thème Visuel : Les bordures et titres doivent toujours utiliser la couleur du groupe (group.color).
-5. Validation : Avant de modifier un fichier presentation, vérifie que tu ne supprimes pas un FloatingActionButton ou une action dans l' AppBar.
+Encapsulée dans un UseCase
 
-### 🚨 CONSIGNES DE NON-RÉGRESSION
-Il est formellement interdit de supprimer le bouton d'importation, le bouton d'ajout (+), ou de modifier la structure de tableaux séparés par classe sans validation. Chaque nouvelle fonctionnalité doit s'ajouter à l'existant, pas le remplacer.
+Aucune duplication autorisée.
 
-### 🧪 RÈGLE TDD (TEST-DRIVEN DEVELOPMENT) — PRIORITAIRE
+4.2 Convention de Nommage
 
-**Aucun code métier ne peut être considéré comme terminé sans son test associé au vert.**
+Fichiers → snake_case.dart
 
-1. **Tests d'abord** : Écrire le test unitaire ou d'intégration *avant* le code de production.
-2. **Couverture obligatoire** : Toute nouvelle `UseCase`, tout service de domaine et toute logique de parsing doit avoir un test dans `test/features/[feature]/`.
-3. **Aucune régression** : Chaque PR doit passer `flutter test` sans erreur.
-4. **Périmètre minimal** : Un test doit couvrir au minimum le cas nominal + un cas limite (ex: liste vide, date hors-période).
-5. **Structure miroir** : Les fichiers de test suivent la même arborescence que `lib/src/` (ex: `lib/src/features/stages/domain/services/stage_period_service.dart` → `test/features/stages/domain/services/stage_period_service_test.dart`).
-6. **Aucun commit avec erreur** : Aucun code ne doit être poussé (commit/push) si `flutter analyze` ou `flutter test` retourne une erreur. Corriger d'abord, pousser ensuite.
+Classes → PascalCase
+
+Variables → camelCase
+
+UseCases → Action + UseCase
+
+Repositories → Nom + Repository
+
+Implémentations → Nom + RepositoryImpl
+
+5. 🎨 UI, Thème & Responsive (STRICT)
+5.1 Thématisation
+
+Interdictions :
+
+❌ Hardcoded colors
+
+❌ Hardcoded fonts
+
+❌ Hardcoded font sizes
+
+Obligatoire :
+
+Theme.of(context)
+context.textTheme
+context.colorScheme
+5.2 Branding
+
+Background sombre : #121212
+
+Titres : Roboto
+
+Corps : Lato
+
+5.3 Responsive Obligatoire
+
+Chaque page doit fonctionner :
+
+📱 Mobile
+
+💻 Desktop
+
+📲 Tablet
+
+Obligatoire :
+
+LayoutBuilder ou MediaQuery
+
+Aucun overflow horizontal
+
+Utilisation flexible de Expanded / Flexible
+
+Aucun écran fixe en largeur.
+
+6. 🛡️ RÈGLES DE PRÉSERVATION UI (STRICTES)
+Interdictions absolues :
+
+❌ Supprimer un bouton existant sans validation explicite
+
+❌ Supprimer le bouton d'importation
+
+❌ Supprimer le bouton "+"
+
+❌ Modifier la structure par tableaux repliables
+
+❌ Supprimer un FloatingActionButton existant
+
+Obligations :
+
+Les titres utilisent group.color
+
+Les bordures utilisent group.color
+
+La vue par classes (tableaux séparés) est la référence
+
+Avant toute modification UI :
+
+Vérifier qu’aucune action AppBar ou FAB n’est supprimée.
+
+7. 🧪 TDD – RÈGLE PRIORITAIRE
+
+Aucun code métier n'est considéré comme terminé sans test vert.
+
+7.1 Tests obligatoires
+
+Chaque UseCase → test unitaire
+
+Chaque Service métier → test
+
+Chaque parsing JSON → test
+
+Structure miroir :
+
+lib/src/features/x/domain/service.dart
+→
+test/features/x/domain/service_test.dart
+7.2 Couverture minimale
+
+Chaque test doit couvrir :
+
+Cas nominal
+
+Cas limite (liste vide, null, date invalide…)
+
+7.3 Interdictions
+
+❌ Aucun commit si flutter analyze en erreur
+
+❌ Aucun commit si flutter test rouge
+
+8. 🗄️ Data & Backend
+
+Backend : Supabase
+
+SDK : supabase_flutter
+
+Aucune logique de sécurité côté client uniquement
+
+Toutes les restrictions doivent être garanties par :
+
+RLS (Row Level Security)
+
+8.1 Interdictions
+
+❌ Appel Supabase dans l'UI
+
+❌ Appel Supabase dans un Widget
+
+❌ Accès direct à Supabase hors Datasource
+
+9. ⚡ Performance
+
+Obligatoire :
+
+const constructors
+
+Séparer gros widgets
+
+Utiliser BlocSelector si pertinent
+
+Éviter rebuilds globaux
+
+Pas de calcul lourd dans build()
+
+10. 📚 Documentation Obligatoire
+
+À chaque évolution majeure :
+
+Mettre à jour :
+
+README.md
+doc/01_functional_overview.md
+doc/02_technical_architecture.md
+doc/03_project_structure.md
+doc/04_dependency_injection.md
+doc/05_supabase_backend.md
+doc/07_security.md
+doc/08_testing_strategy.md
+doc/09_deployment_and_environment.md
+
+Aucune feature majeure sans documentation.
+
+11. 🔄 Workflow Git
+
+Une branche par feature
+
+PR obligatoire
+
+Tests verts avant merge
+
+Conventional commits recommandés :
+
+feat:
+fix:
+refactor:
+test:
+docs:
+12. 🚨 RÈGLE DE NON-RÉGRESSION ABSOLUE
+
+Toute nouvelle fonctionnalité doit :
+
+S’ajouter à l’existant
+
+Ne jamais remplacer un système existant
+
+Ne jamais simplifier la structure sans validation
+
+L'objectif est la stabilité long terme.

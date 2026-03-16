@@ -7,7 +7,6 @@ import '../bloc/student_bloc.dart';
 import '../bloc/student_event.dart';
 import '../bloc/student_state.dart';
 import '../widgets/add_student_form.dart';
-import '../widgets/bulk_import_students_sheet.dart';
 import '../../../attendance/presentation/pages/attendance_table_page.dart';
 import '../../domain/entities/student_entity.dart';
 
@@ -55,44 +54,6 @@ class _StudentListPageState extends State<StudentListPage> {
         );
       },
     );
-  }
-
-  Future<void> _showBulkImportBottomSheet(BuildContext context) async {
-    Color groupColor = Colors.grey;
-    if (widget.groupColorHex != null && widget.groupColorHex!.isNotEmpty) {
-      try {
-        groupColor = Color(
-          int.parse(widget.groupColorHex!.replaceAll('#', '0xFF')),
-        );
-      } catch (_) {}
-    }
-
-    final result = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true, // Takes more place
-      backgroundColor: context.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (bottomSheetContext) {
-        return BlocProvider.value(
-          value: BlocProvider.of<StudentBloc>(context),
-          child: BulkImportStudentsSheet(
-            groupId: widget.groupId,
-            groupColor: groupColor,
-          ),
-        );
-      },
-    );
-
-    if (result != null && result > 0 && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$result élèves ajoutés avec succès ✅'),
-          backgroundColor: context.colorScheme.primary,
-        ),
-      );
-    }
   }
 
   Future<bool?> _showDeleteConfirmation(
@@ -151,11 +112,6 @@ class _StudentListPageState extends State<StudentListPage> {
                   },
                   icon: const Icon(Icons.fact_check_outlined),
                   tooltip: 'Faire l\'appel',
-                ),
-                IconButton(
-                  onPressed: () => _showBulkImportBottomSheet(context),
-                  icon: const Icon(Icons.file_upload),
-                  tooltip: 'Importation massive',
                 ),
                 const SizedBox(width: 8),
               ],

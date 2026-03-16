@@ -108,6 +108,9 @@ class _StudentEditSheetState extends State<StudentEditSheet> {
     final newNote = _noteCtrl.text.trim();
     final att = widget.currentAttendance;
     if (att != null || newNote.isNotEmpty) {
+      final bool noteChanged = att?.note != newNote;
+      final now = DateTime.now();
+
       final updatedAtt = AttendanceEntity(
         id: att?.id ?? '',
         studentId: widget.student.id,
@@ -116,6 +119,8 @@ class _StudentEditSheetState extends State<StudentEditSheet> {
         isInBus: att?.isInBus ?? false,
         note: newNote,
         groupId: widget.groupId,
+        checkInTime: att?.checkInTime,
+        checkOutTime: noteChanged ? now : att?.checkOutTime,
       );
       if (mounted) {
         context.read<AttendanceBloc>().add(

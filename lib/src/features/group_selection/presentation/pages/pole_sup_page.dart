@@ -1,0 +1,288 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
+import '../../../../core/di/injection.dart';
+import '../../../../shared/theme/theme_ext.dart';
+import '../../../attendance/presentation/widgets/attendance_table_widget.dart';
+import '../../../students/presentation/widgets/add_student_form.dart';
+import '../../../students/presentation/bloc/student_bloc.dart';
+import '../bloc/group_bloc.dart';
+import '../bloc/group_event.dart';
+import '../bloc/group_state.dart';
+import '../../domain/entities/group_entity.dart';
+
+class PoleSupPage extends StatefulWidget {
+  const PoleSupPage({super.key});
+
+  @override
+  State<PoleSupPage> createState() => _PoleSupPageState();
+}
+
+class _PoleSupPageState extends State<PoleSupPage> {
+  late DateTime _selectedDate;
+  bool _showAll = false;
+  bool _sortByClass = false; // Tri alphabétique par défaut
+  int _reloadTrigger = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+  }
+
+  void _showAddStudentBottomSheet(
+    BuildContext context,
+    List<GroupEntity> groups,
+  ) {
+    if (groups.isEmpty) return;
+
+    if (groups.length == 1) {
+      _openAddStudentForm(context, groups.first);
+      return;
+    }
+
+    showDialog<GroupEntity>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Choisir le groupe'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: groups.map((g) {
+              return ListTile(
+                title: Text(g.name),
+                onTap: () => Navigator.of(context).pop(g),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    ).then((selectedGroup) {
+      if (selectedGroup != null && context.mounted) {
+        _openAddStudentForm(context, selectedGroup);
+      }
+    });
+  }
+
+  void _openAddStudentForm(BuildContext context, GroupEntity group) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return BlocProvider(
+          create: (context) => getIt<StudentBloc>(),
+          child: AddStudentForm(groupId: group.id),
+        );
+      },
+    ).then((_) {
+      if (context.mounted) {
+        setState(() {
+          _reloadTrigger++;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String formattedDate = DateFormat(
+      "'Aujourd''hui,' EEEE d MMMM",
+      'fr_FR',
+    ).format(DateTime.now());
+
+    return BlocProvider(
+      create: (context) => getIt<GroupBloc>()..add(LoadGroups()),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pôle-Sup'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(30),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                formattedDate,
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                _showAll ? Icons.visibility : Icons.visibility_off,
+                color: _showAll ? Colors.orange : null,
+              ),
+              tooltip: _showAll
+                  ? 'Filtrage actif : Tout afficher'
+                  : 'Tout afficher',
+              onPressed: () => setState(() => _showAll = !_showAll),
+            ),
+            IconButton(
+              icon: const Icon(Icons.calendar_today),
+              onPressed: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (date != null && context.mounted) {
+                  setState(() => _selectedDate = date);
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Ordre Alphabétique',
+                    style: TextStyle(
+                      fontWeight: !_sortByClass
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: !_sortByClass
+                          ? context.colorScheme.primary
+                          : context.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Switch(
+                    value: _sortByClass,
+                    onChanged: (val) {
+                      setState(() {
+                        _sortByClass = val;
+                      });
+                    },
+                  ),
+                  Text(
+                    'Classe',
+                    style: TextStyle(
+                      fontWeight: _sortByClass
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: _sortByClass
+                          ? context.colorScheme.primary
+                          : context.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: BlocBuilder<GroupBloc, GroupState>(
+                builder: (context, state) {
+                  if (state is GroupsLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is GroupsError) {
+                    return Center(child: Text(state.message));
+                  } else if (state is GroupsLoaded) {
+                    final poleSupGroups = state.groups.where((g) {
+                      final lowerName = g.name.toLowerCase();
+                      return lowerName.contains('alternants 1') ||
+                          lowerName.contains('alternants 2') ||
+                          lowerName.contains('méca voiture') ||
+                          lowerName.contains('sécurité');
+                    }).toList();
+
+                    if (poleSupGroups.isEmpty) {
+                      return const Center(
+                        child: Text('Aucun groupe Pôle-Sup trouvé.'),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: poleSupGroups.length,
+                      itemBuilder: (context, index) {
+                        final group = poleSupGroups[index];
+                        Color parsedColor = context.colorScheme.primary;
+                        try {
+                          final hex = group.color.replaceAll('#', '');
+                          parsedColor = Color(int.parse('FF$hex', radix: 16));
+                        } catch (_) {
+                          try {
+                            parsedColor = Color(
+                              int.parse(
+                                '0xFF${group.color.replaceAll("#", "")}',
+                              ),
+                            );
+                          } catch (_) {}
+                        }
+
+                        return ExpansionTile(
+                          initiallyExpanded: false, // Tous fermés par défaut
+                          collapsedIconColor: parsedColor,
+                          iconColor: parsedColor,
+                          title: Text(
+                            group.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: parsedColor,
+                            ),
+                          ),
+                          children: [
+                            Container(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  top: BorderSide(
+                                    color: parsedColor.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
+                              child: AttendanceTableWidget(
+                                groupId: group.id,
+                                groupName: group.name,
+                                groupColorHex: group.color,
+                                selectedDate: _selectedDate,
+                                showAll: _showAll,
+                                sortByClass: _sortByClass,
+                                reloadTrigger: _reloadTrigger,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: BlocBuilder<GroupBloc, GroupState>(
+          builder: (context, state) {
+            if (state is GroupsLoaded) {
+              final poleSupGroups = state.groups.where((g) {
+                final lowerName = g.name.toLowerCase();
+                return lowerName.contains('alternants 1') ||
+                    lowerName.contains('alternants 2') ||
+                    lowerName.contains('méca voiture') ||
+                    lowerName.contains('sécurité');
+              }).toList();
+
+              return FloatingActionButton(
+                onPressed: () =>
+                    _showAddStudentBottomSheet(context, poleSupGroups),
+                child: const Icon(Icons.person_add),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  }
+}

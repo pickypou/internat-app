@@ -9,6 +9,8 @@ class AttendanceModel extends AttendanceEntity {
     required super.isInBus,
     required super.note,
     super.groupId,
+    super.checkInTime,
+    super.checkOutTime,
   });
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,12 @@ class AttendanceModel extends AttendanceEntity {
       isInBus: json['is_in_bus'] as bool? ?? false,
       note: json['note'] as String? ?? '',
       groupId: json['group_id'] as String? ?? '',
+      checkInTime: json['check_in_time'] != null
+          ? DateTime.tryParse(json['check_in_time'] as String)
+          : null,
+      checkOutTime: json['check_out_time'] != null
+          ? DateTime.tryParse(json['check_out_time'] as String)
+          : null,
     );
   }
 
@@ -35,6 +43,12 @@ class AttendanceModel extends AttendanceEntity {
       'note': note,
       'group_id': groupId,
     };
+    if (checkInTime != null) {
+      json['check_in_time'] = checkInTime!.toUtc().toIso8601String();
+    }
+    if (checkOutTime != null) {
+      json['check_out_time'] = checkOutTime!.toUtc().toIso8601String();
+    }
     if (id.isNotEmpty) {
       json['id'] = id;
     }

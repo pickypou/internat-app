@@ -67,6 +67,8 @@ import '../../features/students/domain/usecases/add_student_usecase.dart'
     as _i891;
 import '../../features/students/domain/usecases/add_students_usecase.dart'
     as _i768;
+import '../../features/students/domain/usecases/delete_all_students_usecase.dart'
+    as _i160;
 import '../../features/students/domain/usecases/delete_student_usecase.dart'
     as _i965;
 import '../../features/students/domain/usecases/delete_students_by_group_usecase.dart'
@@ -141,6 +143,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i768.AddStudentsUseCase>(
       () => _i768.AddStudentsUseCase(gh<_i679.StudentRepository>()),
+    );
+    gh.factory<_i160.DeleteAllStudentsUseCase>(
+      () => _i160.DeleteAllStudentsUseCase(gh<_i679.StudentRepository>()),
     );
     gh.factory<_i965.DeleteStudentUseCase>(
       () => _i965.DeleteStudentUseCase(gh<_i679.StudentRepository>()),

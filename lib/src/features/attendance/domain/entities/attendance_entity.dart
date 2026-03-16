@@ -8,6 +8,8 @@ class AttendanceEntity extends Equatable {
   final bool isInBus;
   final String note;
   final String groupId;
+  final DateTime? checkInTime;
+  final DateTime? checkOutTime;
 
   const AttendanceEntity({
     required this.id,
@@ -17,6 +19,8 @@ class AttendanceEntity extends Equatable {
     required this.isInBus,
     required this.note,
     this.groupId = '',
+    this.checkInTime,
+    this.checkOutTime,
   });
 
   @override
@@ -28,6 +32,8 @@ class AttendanceEntity extends Equatable {
     isInBus,
     note,
     groupId,
+    checkInTime,
+    checkOutTime,
   ];
 
   AttendanceEntity copyWith({
@@ -38,6 +44,8 @@ class AttendanceEntity extends Equatable {
     bool? isInBus,
     String? note,
     String? groupId,
+    DateTime? checkInTime,
+    DateTime? checkOutTime,
   }) {
     return AttendanceEntity(
       id: id ?? this.id,
@@ -47,11 +55,14 @@ class AttendanceEntity extends Equatable {
       isInBus: isInBus ?? this.isInBus,
       note: note ?? this.note,
       groupId: groupId ?? this.groupId,
+      checkInTime: checkInTime ?? this.checkInTime,
+      checkOutTime: checkOutTime ?? this.checkOutTime,
     );
   }
 
   String get computedStatus {
     if (note == 'Stage') return 'Stage';
+    if (note == 'Absent Justifié') return 'Absent Justifié';
     if (note == 'Famille') return 'Famille';
     if (note == 'Retard') return 'Retard';
     if (isInBus) return 'Bus';

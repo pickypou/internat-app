@@ -18,6 +18,8 @@ class AttendanceArchiveEntity extends Equatable {
   final String status; // 'Présent', 'Absent', 'Stage', 'Hors Quinzaine'
   final String? note;
   final DateTime archiveDate;
+  final DateTime? checkInTime;
+  final DateTime? checkOutTime;
 
   const AttendanceArchiveEntity({
     required this.id,
@@ -32,6 +34,8 @@ class AttendanceArchiveEntity extends Equatable {
     required this.status,
     this.note,
     required this.archiveDate,
+    this.checkInTime,
+    this.checkOutTime,
   });
 
   @override
@@ -48,5 +52,7 @@ class AttendanceArchiveEntity extends Equatable {
     status,
     note,
     archiveDate,
+    checkInTime,
+    checkOutTime,
   ];
 }

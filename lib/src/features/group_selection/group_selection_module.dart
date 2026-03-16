@@ -1,9 +1,15 @@
 import 'package:go_router/go_router.dart';
+import 'presentation/pages/lycee_page.dart';
+import 'presentation/pages/pole_sup_page.dart';
 
-/// Module configuration for the group selection feature navigation.
 class GroupSelectionModule {
-  /// Defines all GoRoutes belonging to this feature.
   static List<GoRoute> get routes {
-    return [];
+    return [
+      GoRoute(path: '/lycee', builder: (context, state) => const LyceePage()),
+      GoRoute(
+        path: '/pole-sup',
+        builder: (context, state) => const PoleSupPage(),
+      ),
+    ];
   }
 }

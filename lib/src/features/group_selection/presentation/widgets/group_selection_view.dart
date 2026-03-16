@@ -126,31 +126,37 @@ class GroupSelectionView extends StatelessWidget {
                   ),
                 ),
 
-                // ── Grille des groupes ──
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final group = state.groups[index];
-                      return _GroupCard(
-                        name: group.name,
-                        colorHex: group.color,
-                        groupId: group.id,
-                        onTap: () {
-                          context.push(
-                            '/group/${group.id}',
-                            extra: {'name': group.name, 'color': group.color},
-                          );
-                        },
-                      );
-                    }, childCount: state.groups.length),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.1,
+                // ── Navigation Principale (Lycée / Pôle-Sup) ──
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height:
+                              140, // Match the height roughly of childAspectRatio 1.1 but full width
+                          child: _GroupCard(
+                            name: '🏫 Lycée',
+                            colorHex: '1976D2', // Un bleu standard
+                            onTap: () {
+                              context.push('/lycee');
+                            },
+                          ),
                         ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 140,
+                          child: _GroupCard(
+                            name: '🎓 Pôle-Sup',
+                            colorHex: '388E3C', // Un vert pour Pôle-Sup
+                            onTap: () {
+                              context.push('/pole-sup');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -199,45 +205,46 @@ class _GroupCard extends StatelessWidget {
                   ),
                 ),
               ),
-              ListTile(
-                leading: Icon(Icons.edit, color: cardColor),
-                title: const Text('Renommer le groupe'),
-                onTap: () async {
-                  Navigator.of(sheetCtx).pop();
-                  final controller = TextEditingController(text: name);
-                  final newName = await showDialog<String>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Renommer le groupe'),
-                      content: TextField(
-                        controller: controller,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Nouveau nom',
+              if (!isVirtual)
+                ListTile(
+                  leading: Icon(Icons.edit, color: cardColor),
+                  title: const Text('Renommer le groupe'),
+                  onTap: () async {
+                    Navigator.of(sheetCtx).pop();
+                    final controller = TextEditingController(text: name);
+                    final newName = await showDialog<String>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Renommer le groupe'),
+                        content: TextField(
+                          controller: controller,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Nouveau nom',
+                          ),
                         ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Annuler'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () =>
+                                Navigator.of(ctx).pop(controller.text.trim()),
+                            child: const Text('Renommer'),
+                          ),
+                        ],
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          child: const Text('Annuler'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              Navigator.of(ctx).pop(controller.text.trim()),
-                          child: const Text('Renommer'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (newName != null &&
-                      newName.isNotEmpty &&
-                      context.mounted) {
-                    context.read<GroupBloc>().add(
-                      RenameGroup(groupId!, newName),
                     );
-                  }
-                },
-              ),
+                    if (newName != null &&
+                        newName.isNotEmpty &&
+                        context.mounted) {
+                      context.read<GroupBloc>().add(
+                        RenameGroup(groupId!, newName),
+                      );
+                    }
+                  },
+                ),
               if (!isVirtual)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),

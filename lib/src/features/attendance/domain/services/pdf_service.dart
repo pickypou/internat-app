@@ -85,10 +85,25 @@ class PdfService {
         'Chambre',
         'Date (Appel)',
         'Statut',
-        'Note',
+        'Note / Horaires',
       ],
       data: records.map((r) {
         final checkDateFormat = DateFormat('dd/MM/yyyy');
+        final timeFormat = DateFormat('HH:mm');
+
+        String extraInfo = r.note ?? '';
+        List<String> times = [];
+        if (r.checkInTime != null) {
+          times.add('In: ${timeFormat.format(r.checkInTime!)}');
+        }
+        if (r.checkOutTime != null) {
+          times.add('Out: ${timeFormat.format(r.checkOutTime!)}');
+        }
+        if (times.isNotEmpty) {
+          final timeStr = times.join(' | ');
+          extraInfo = extraInfo.isEmpty ? timeStr : '$extraInfo\n($timeStr)';
+        }
+
         return [
           r.storedClassName,
           r.storedLastName,
@@ -96,7 +111,7 @@ class PdfService {
           r.storedRoomNumber,
           checkDateFormat.format(r.checkDate),
           r.status,
-          r.note ?? '',
+          extraInfo,
         ];
       }).toList(),
     );

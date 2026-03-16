@@ -33,10 +33,15 @@ class StatusModal extends StatelessWidget {
       isPresentEvening = true;
     } else if (statusKey == 'Absent') {
       isPresentEvening = false;
+    } else if (statusKey == 'Absent Justifié') {
+      isPresentEvening = false;
+      newNote = 'Absent Justifié';
     } else if (statusKey == 'Stage') {
       isPresentEvening = false;
       newNote = 'Stage';
     }
+
+    final now = DateTime.now();
 
     final updated = AttendanceEntity(
       id: currentAttendance?.id ?? '', // empty if new
@@ -46,6 +51,10 @@ class StatusModal extends StatelessWidget {
       isInBus: isInBus,
       note: newNote,
       groupId: groupId,
+      checkInTime: statusKey == 'Présent'
+          ? now
+          : currentAttendance?.checkInTime,
+      checkOutTime: currentAttendance?.checkOutTime,
     );
     context.read<AttendanceBloc>().add(
       UpdateAttendance(updated, groupId, date),
@@ -70,41 +79,47 @@ class StatusModal extends StatelessWidget {
         color: context.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Statut : ${student.firstName} ${student.lastName}',
-            style: context.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          _buildStatusButton(context, 'Présent', '✅', Colors.green),
-          const SizedBox(height: 12),
-          _buildStatusButton(context, 'Absent', '❌', Colors.red),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.colorScheme.errorContainer,
-              foregroundColor: context.colorScheme.onErrorContainer,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Statut : ${student.firstName} ${student.lastName}',
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-              elevation: 0,
+              textAlign: TextAlign.center,
             ),
-            onPressed: () => _clearStatus(context),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text(
-              'Effacer / Vide',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 24),
+            _buildStatusButton(context, 'Présent', '✅', Colors.green),
+            const SizedBox(height: 12),
+            _buildStatusButton(context, 'Stage', '💼', Colors.blue),
+            const SizedBox(height: 12),
+            _buildStatusButton(context, 'Absent Justifié', '⚠️', Colors.orange),
+            const SizedBox(height: 12),
+            _buildStatusButton(context, 'Absent', '❌', Colors.red),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.colorScheme.errorContainer,
+                foregroundColor: context.colorScheme.onErrorContainer,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () => _clearStatus(context),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text(
+                'Effacer / Vide',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }
