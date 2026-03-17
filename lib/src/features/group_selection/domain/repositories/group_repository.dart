@@ -7,9 +7,9 @@ abstract class GroupRepository {
   Future<List<GroupEntity>> getGroups();
 
   /// Creates a new group.
-  Future<void> createGroup(String name, String colorHex);
+  Future<void> createGroup(String name, String colorHex, {bool isPoleSup = false});
   Future<void> deleteGroup(String groupId);
   Future<void> renameGroup(String groupId, String newName);
   Future<String?> getGroupIdByName(String name);
-  Future<String> ensureGroupExists(String name, String colorHex);
+  Future<String> ensureGroupExists(String name, String colorHex, {bool isPoleSup = false});
 }

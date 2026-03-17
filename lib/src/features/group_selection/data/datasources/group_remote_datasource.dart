@@ -6,7 +6,7 @@ import '../models/group_model.dart';
 /// Abstract interface for group data source.
 abstract class GroupRemoteDataSource {
   Future<List<GroupModel>> getGroups();
-  Future<void> createGroup(String name, String colorHex);
+  Future<void> createGroup(String name, String colorHex, {bool isPoleSup = false});
   Future<void> deleteGroup(String groupId);
   Future<void> renameGroup(String groupId, String newName);
 
@@ -14,7 +14,7 @@ abstract class GroupRemoteDataSource {
   Future<String?> getGroupIdByName(String name);
 
   /// Finds or creates a group by [name] and returns its ID.
-  Future<String> ensureGroupExists(String name, String colorHex);
+  Future<String> ensureGroupExists(String name, String colorHex, {bool isPoleSup = false});
 }
 
 /// Supabase implementation of the data source.
@@ -30,7 +30,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     try {
       final response = await _supabaseClient
           .from('groups')
-          .select()
+          .select('*, students(count)')
           .order('name');
 
       return (response as List<dynamic>)
@@ -42,11 +42,12 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   }
 
   @override
-  Future<void> createGroup(String name, String colorHex) async {
+  Future<void> createGroup(String name, String colorHex, {bool isPoleSup = false}) async {
     try {
       await _supabaseClient.from('groups').insert({
         'name': name,
         'color': colorHex,
+        'is_pole_sup': isPoleSup,
       });
     } catch (e) {
       throw ServerFailure('Failed to create group in Supabase: $e');
@@ -93,13 +94,17 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   }
 
   @override
-  Future<String> ensureGroupExists(String name, String colorHex) async {
+  Future<String> ensureGroupExists(String name, String colorHex, {bool isPoleSup = false}) async {
     final existingId = await getGroupIdByName(name);
     if (existingId != null) return existingId;
     // Create group and return the new ID
     final response = await _supabaseClient
         .from('groups')
-        .insert({'name': name, 'color': colorHex})
+        .insert({
+          'name': name,
+          'color': colorHex,
+          'is_pole_sup': isPoleSup,
+        })
         .select('id')
         .single();
     return response['id'] as String;

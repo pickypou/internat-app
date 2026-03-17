@@ -18,8 +18,8 @@ class GroupRepositoryImpl implements GroupRepository {
   }
 
   @override
-  Future<void> createGroup(String name, String colorHex) async {
-    return await _remoteDataSource.createGroup(name, colorHex);
+  Future<void> createGroup(String name, String colorHex, {bool isPoleSup = false}) async {
+    return await _remoteDataSource.createGroup(name, colorHex, isPoleSup: isPoleSup);
   }
 
   @override
@@ -38,7 +38,7 @@ class GroupRepositoryImpl implements GroupRepository {
   }
 
   @override
-  Future<String> ensureGroupExists(String name, String colorHex) async {
-    return await _remoteDataSource.ensureGroupExists(name, colorHex);
+  Future<String> ensureGroupExists(String name, String colorHex, {bool isPoleSup = false}) async {
+    return await _remoteDataSource.ensureGroupExists(name, colorHex, isPoleSup: isPoleSup);
   }
 }

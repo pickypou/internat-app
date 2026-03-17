@@ -12,11 +12,12 @@ class LoadGroups extends GroupEvent {}
 class CreateGroup extends GroupEvent {
   final String name;
   final String color;
+  final bool isPoleSup;
 
-  const CreateGroup({required this.name, required this.color});
+  const CreateGroup({required this.name, required this.color, this.isPoleSup = false});
 
   @override
-  List<Object> get props => [name, color];
+  List<Object> get props => [name, color, isPoleSup];
 }
 
 class DeleteGroup extends GroupEvent {

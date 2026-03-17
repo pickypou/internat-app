@@ -46,7 +46,7 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
   ) async {
     emit(GroupsLoading());
     try {
-      await createGroupUseCase(event.name, event.color);
+      await createGroupUseCase(event.name, event.color, isPoleSup: event.isPoleSup);
       add(LoadGroups());
     } on Failure catch (failure) {
       emit(GroupsError(failure.message));

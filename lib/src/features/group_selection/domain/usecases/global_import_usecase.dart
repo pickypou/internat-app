@@ -119,12 +119,25 @@ class GlobalImportUseCase {
         if (!groupIdCache.containsKey(groupKey)) {
           final color = _randomColor(usedColors);
           usedColors.add(color);
+          
+          final bool isPoleSup = canonicalName.toLowerCase().contains('alternant') ||
+              canonicalName.toLowerCase().contains('pole-sup') ||
+              canonicalName.toLowerCase().contains('pôle-sup') ||
+              canonicalName.toLowerCase().contains('meca') ||
+              canonicalName.toLowerCase().contains('méca') ||
+              canonicalName.toLowerCase().contains('sécurité') ||
+              canonicalName.toLowerCase().contains('securite');
+
           dev.log(
-            '[GlobalImport] Creating group "$canonicalName" color #$color',
+            '[GlobalImport] Creating group "$canonicalName" (PôleSup: $isPoleSup) color #$color',
           );
+          
+          // Cast repository to GroupRepositoryImpl to access the extended parameter if needed,
+          // OR verify that ensureGroupExists supports it? Wait, we didn't add isPoleSup to ensureGroupExists. Let's fix ensureGroupExists.
           final newId = await _groupRepository.ensureGroupExists(
             canonicalName,
             color,
+            isPoleSup: isPoleSup,
           );
           groupIdCache[groupKey] = newId;
           dev.log('[GlobalImport] Group "$canonicalName" → id=$newId');

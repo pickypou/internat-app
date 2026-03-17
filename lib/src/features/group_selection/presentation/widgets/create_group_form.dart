@@ -17,6 +17,7 @@ class CreateGroupForm extends StatefulWidget {
 class _CreateGroupFormState extends State<CreateGroupForm> {
   final TextEditingController _nameController = TextEditingController();
   int _selectedColorIndex = 0;
+  bool _isPoleSup = false;
 
   @override
   void dispose() {
@@ -36,7 +37,11 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
         .toUpperCase();
 
     context.read<GroupBloc>().add(
-      CreateGroup(name: _nameController.text.trim(), color: selectedHex),
+      CreateGroup(
+        name: _nameController.text.trim(),
+        color: selectedHex,
+        isPoleSup: _isPoleSup,
+      ),
     );
   }
 
@@ -129,6 +134,18 @@ class _CreateGroupFormState extends State<CreateGroupForm> {
                   ),
                 );
               }),
+            ),
+            const SizedBox(height: 24),
+            CheckboxListTile(
+              title: const Text('Groupe Pôle-Sup'),
+              subtitle: const Text('Cochez si ce groupe appartient au Pôle-Sup, sinon il sera affecté au Lycée.'),
+              value: _isPoleSup,
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _isPoleSup = val);
+                }
+              },
+              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 32),
             BlocBuilder<GroupBloc, GroupState>(

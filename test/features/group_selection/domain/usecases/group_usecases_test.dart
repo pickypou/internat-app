@@ -23,11 +23,11 @@ class _FakeGroupRepository implements GroupRepository {
   Future<List<GroupEntity>> getGroups() async => List.from(groups);
 
   @override
-  Future<void> createGroup(String name, String colorHex) async {
+  Future<void> createGroup(String name, String colorHex, {bool isPoleSup = false}) async {
     lastCreatedName = name;
     lastCreatedColor = colorHex;
     groups.add(
-      GroupEntity(id: 'new-${groups.length}', name: name, color: colorHex),
+      GroupEntity(id: 'new-${groups.length}', name: name, color: colorHex, isPoleSup: isPoleSup),
     );
   }
 
@@ -52,10 +52,10 @@ class _FakeGroupRepository implements GroupRepository {
   }
 
   @override
-  Future<String> ensureGroupExists(String name, String colorHex) async {
+  Future<String> ensureGroupExists(String name, String colorHex, {bool isPoleSup = false}) async {
     final found = await getGroupIdByName(name);
     if (found != null) return found;
-    await createGroup(name, colorHex);
+    await createGroup(name, colorHex, isPoleSup: isPoleSup);
     return groups.last.id;
   }
 }

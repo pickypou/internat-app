@@ -188,11 +188,7 @@ class _LyceePageState extends State<LyceePage> {
                   } else if (state is GroupsError) {
                     return Center(child: Text(state.message));
                   } else if (state is GroupsLoaded) {
-                    final lyceeGroups = state.groups.where((g) {
-                      final lowerName = g.name.toLowerCase();
-                      return lowerName.contains('cassandra') ||
-                          lowerName.contains('hugues');
-                    }).toList();
+                    final lyceeGroups = state.groups.where((g) => !g.isPoleSup && g.studentCount > 0).toList();
 
                     if (lyceeGroups.isEmpty) {
                       return const Center(
@@ -263,11 +259,7 @@ class _LyceePageState extends State<LyceePage> {
         floatingActionButton: BlocBuilder<GroupBloc, GroupState>(
           builder: (context, state) {
             if (state is GroupsLoaded) {
-              final lyceeGroups = state.groups.where((g) {
-                final lowerName = g.name.toLowerCase();
-                return lowerName.contains('cassandra') ||
-                    lowerName.contains('hugues');
-              }).toList();
+              final lyceeGroups = state.groups.where((g) => !g.isPoleSup).toList();
 
               return FloatingActionButton(
                 onPressed: () =>

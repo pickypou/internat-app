@@ -7,7 +7,7 @@ class CreateGroupUseCase {
 
   CreateGroupUseCase(this.repository);
 
-  Future<void> call(String name, String colorHex) {
-    return repository.createGroup(name, colorHex);
+  Future<void> call(String name, String colorHex, {bool isPoleSup = false}) {
+    return repository.createGroup(name, colorHex, isPoleSup: isPoleSup);
   }
 }
