@@ -74,9 +74,15 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
   final Set<TableColumn> _expandedColumns = {};
   List<StagePeriodEntity> _periods = [];
 
+  // Whether this widget created its own bloc or inherited it from a parent BlocProvider.
+  // On PoleSupPage, the bloc is shared — we must NOT close it ourselves.
+  late final bool _ownsBloc;
+
   @override
   void initState() {
     super.initState();
+    // If students & attendances are injected externally, the bloc is owned by a parent.
+    _ownsBloc = widget.students == null && widget.attendances == null;
     _bloc = context.read<AttendanceBloc>();
     if (widget.students == null || widget.attendances == null) {
       _bloc.add(LoadAttendance(widget.groupId, widget.selectedDate));
@@ -126,7 +132,9 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
     _leftScrollController.dispose();
     _rightScrollController.dispose();
     _horizontalController.dispose();
-    _bloc.close();
+    if (_ownsBloc) {
+      _bloc.close();
+    }
     super.dispose();
   }
 
@@ -238,6 +246,7 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
 
                 if (item is StudentEntity) {
                   return Container(
+                    key: ValueKey(item.id),
                     padding: const EdgeInsets.only(left: 10, right: 8),
                     alignment: Alignment.centerLeft,
                     decoration: BoxDecoration(
@@ -370,6 +379,7 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
                           .firstOrNull;
 
                       return Row(
+                        key: ValueKey(student.id),
                         children: _columns.map((col) {
                           Color cellColor = Colors.transparent;
                           final String? status = todayAtt?.computedStatus;

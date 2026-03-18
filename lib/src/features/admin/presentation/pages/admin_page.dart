@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
@@ -172,17 +173,11 @@ class AdminPage extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Archivage réussi : les présences ont été compressées en JSON et le PDF a été stocké.',
+                  '✅ Archivage réussi ! Les présences ont été sauvegardées et le PDF est disponible dans l\'onglet Archives.',
                 ),
+                duration: Duration(seconds: 4),
               ),
             );
-
-            // Trigger download/print for convenience
-            final safeFilename = periodLabel
-                .replaceAll(':', '')
-                .replaceAll('/', '-')
-                .replaceAll(' ', '_');
-            await PdfService.printPdf(pdfBytes, '$safeFilename.pdf');
           }
         } else {
           if (context.mounted) {
@@ -336,6 +331,30 @@ class AdminPage extends StatelessWidget {
                     onPressed: () => _handleArchive(context, isLycee: false),
                     icon: const Icon(Icons.archive_outlined),
                     label: const Text('Clôturer la quinzaine Pôle-Sup (PDF)'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            CustomCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Historique des Rapports',
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.colorScheme.primaryContainer,
+                      foregroundColor: context.colorScheme.onPrimaryContainer,
+                    ),
+                    onPressed: () => context.go('/archives'),
+                    icon: const Icon(Icons.folder_open_outlined),
+                    label: const Text('Voir l\'Historique des Archives'),
                   ),
                 ],
               ),

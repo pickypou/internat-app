@@ -3,6 +3,7 @@ import '../../features/home/home_module.dart';
 import '../../features/group_selection/group_selection_module.dart';
 import '../../features/students/student_module.dart';
 import '../../features/admin/admin_module.dart';
+import '../../features/archives/archives_module.dart';
 
 /// Central application router.
 /// Aggregates routing modules from all FSD features.
@@ -13,5 +14,6 @@ final GoRouter appRouter = GoRouter(
     ...GroupSelectionModule.routes,
     ...StudentModule.routes,
     ...AdminModule.routes,
+    ...ArchivesModule.routes,
   ],
 );
