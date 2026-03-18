@@ -7,6 +7,8 @@ import '../../domain/usecases/save_attendance_usecase.dart';
 import '../../domain/usecases/delete_attendance_usecase.dart';
 import '../../../students/domain/usecases/get_students_usecase.dart';
 import '../../../students/domain/usecases/get_all_students_usecase.dart';
+import '../../../students/domain/usecases/get_pole_sup_students_usecase.dart';
+import '../../domain/usecases/get_pole_sup_attendances_usecase.dart';
 import 'attendance_event.dart';
 import 'attendance_state.dart';
 
@@ -15,6 +17,8 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
   final GetStudentsUseCase getStudentsUseCase;
   final GetAllStudentsUseCase getAllStudentsUseCase;
   final GetAttendancesUseCase getAttendancesUseCase;
+  final GetPoleSupStudentsUseCase getPoleSupStudentsUseCase;
+  final GetPoleSupAttendancesUseCase getPoleSupAttendancesUseCase;
   final SaveAttendanceUseCase saveAttendanceUseCase;
   final DeleteAttendanceUseCase deleteAttendanceUseCase;
 
@@ -22,10 +26,13 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     required this.getStudentsUseCase,
     required this.getAllStudentsUseCase,
     required this.getAttendancesUseCase,
+    required this.getPoleSupStudentsUseCase,
+    required this.getPoleSupAttendancesUseCase,
     required this.saveAttendanceUseCase,
     required this.deleteAttendanceUseCase,
   }) : super(AttendanceInitial()) {
     on<LoadAttendance>(_onLoadAttendance);
+    on<LoadPoleSupClasses>(_onLoadPoleSupClasses);
     on<UpdateAttendance>(_onUpdateAttendance);
     on<DeleteAttendance>(_onDeleteAttendance);
   }
@@ -49,6 +56,22 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       emit(
         AttendanceLoaded(students: students.cast(), attendances: attendances),
       );
+    } on Failure catch (failure) {
+      emit(AttendanceError(failure.message));
+    } catch (e) {
+      emit(AttendanceError('An unexpected error occurred: $e'));
+    }
+  }
+
+  Future<void> _onLoadPoleSupClasses(
+    LoadPoleSupClasses event,
+    Emitter<AttendanceState> emit,
+  ) async {
+    emit(AttendanceLoading());
+    try {
+      final students = await getPoleSupStudentsUseCase();
+      final attendances = await getPoleSupAttendancesUseCase(event.date);
+      emit(AttendanceLoaded(students: students, attendances: attendances));
     } on Failure catch (failure) {
       emit(AttendanceError(failure.message));
     } catch (e) {

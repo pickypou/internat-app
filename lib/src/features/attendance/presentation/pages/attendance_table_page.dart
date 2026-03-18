@@ -7,6 +7,7 @@ import '../../../../shared/theme/theme_ext.dart';
 import '../widgets/attendance_table_widget.dart';
 import '../../../students/presentation/widgets/add_student_form.dart';
 import '../../../students/presentation/bloc/student_bloc.dart';
+import '../bloc/attendance_bloc.dart';
 
 class AttendanceTablePage extends StatefulWidget {
   final String groupId;
@@ -104,14 +105,17 @@ class _AttendanceTablePageState extends State<AttendanceTablePage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: AttendanceTableWidget(
-        groupId: widget.groupId,
-        groupName: widget.groupName,
-        groupColorHex: widget.groupColorHex,
-        selectedDate: _selectedDate,
-        showAll: _showAll,
-        sortByClass: false,
-        reloadTrigger: _reloadTrigger,
+      body: BlocProvider(
+        create: (context) => getIt<AttendanceBloc>(),
+        child: AttendanceTableWidget(
+          groupId: widget.groupId,
+          groupName: widget.groupName,
+          groupColorHex: widget.groupColorHex,
+          selectedDate: _selectedDate,
+          showAll: _showAll,
+          sortByClass: false,
+          reloadTrigger: _reloadTrigger,
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

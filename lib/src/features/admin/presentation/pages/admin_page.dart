@@ -141,40 +141,56 @@ class AdminPage extends StatelessWidget {
         List<AttendanceArchiveEntity> archives = [];
 
         if (isLycee) {
-          archives = await getIt<ArchiveAndResetLyceeUseCase>()(
+          archives = await getIt<GetLyceeArchiveDataUseCase>()(
             startDate: startDate,
             endDate: endDate,
             periodLabel: periodLabel,
           );
         } else {
-          archives = await getIt<ArchiveAndResetPolSupUseCase>()(
+          archives = await getIt<GetPolSupArchiveDataUseCase>()(
             startDate: startDate,
             endDate: endDate,
             periodLabel: periodLabel,
           );
         }
 
-        if (context.mounted) {
-          Navigator.of(context).pop(); // hide loader
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Archivage réussi : les présences de ce flux ont été réinitialisées.',
-              ),
-            ),
-          );
-        }
-
         if (archives.isNotEmpty) {
-          final safeFilename = periodLabel
-              .replaceAll(':', '')
-              .replaceAll('/', '-')
-              .replaceAll(' ', '_');
           final pdfBytes = await PdfService.generateArchivePdf(
             archives,
             periodLabel,
           );
-          await PdfService.printPdf(pdfBytes, '$safeFilename.pdf');
+
+          await getIt<ArchiveAndResetUseCase>()(
+            archives: archives,
+            pdfBytes: pdfBytes,
+            reportName: periodLabel, // use periodLabel as reportName
+            periodLabel: periodLabel,
+          );
+
+          if (context.mounted) {
+            Navigator.of(context).pop(); // hide loader
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Archivage réussi : les présences ont été compressées en JSON et le PDF a été stocké.',
+                ),
+              ),
+            );
+
+            // Trigger download/print for convenience
+            final safeFilename = periodLabel
+                .replaceAll(':', '')
+                .replaceAll('/', '-')
+                .replaceAll(' ', '_');
+            await PdfService.printPdf(pdfBytes, '$safeFilename.pdf');
+          }
+        } else {
+          if (context.mounted) {
+            Navigator.of(context).pop(); // hide loader
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Aucune présence à archiver.')),
+            );
+          }
         }
       } catch (e) {
         if (context.mounted) {

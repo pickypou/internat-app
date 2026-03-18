@@ -25,6 +25,8 @@ import '../../features/attendance/domain/usecases/delete_attendance_usecase.dart
     as _i4;
 import '../../features/attendance/domain/usecases/get_attendances_usecase.dart'
     as _i483;
+import '../../features/attendance/domain/usecases/get_pole_sup_attendances_usecase.dart'
+    as _i653;
 import '../../features/attendance/domain/usecases/save_attendance_usecase.dart'
     as _i763;
 import '../../features/attendance/presentation/bloc/attendance_bloc.dart'
@@ -75,6 +77,8 @@ import '../../features/students/domain/usecases/delete_students_by_group_usecase
     as _i569;
 import '../../features/students/domain/usecases/get_all_students_usecase.dart'
     as _i892;
+import '../../features/students/domain/usecases/get_pole_sup_students_usecase.dart'
+    as _i820;
 import '../../features/students/domain/usecases/get_students_usecase.dart'
     as _i623;
 import '../../features/students/domain/usecases/update_student_usecase.dart'
@@ -121,6 +125,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i679.StudentRepository>(
       () => _i865.StudentRepositoryImpl(gh<_i65.StudentRemoteDataSource>()),
     );
+    gh.factory<_i820.GetPoleSupStudentsUseCase>(
+      () => _i820.GetPoleSupStudentsUseCase(gh<_i679.StudentRepository>()),
+    );
     gh.factory<_i880.StagePeriodRemoteDataSource>(
       () => _i880.StagePeriodRemoteDataSourceImpl(
         supabaseClient: gh<_i454.SupabaseClient>(),
@@ -137,6 +144,10 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i4.DeleteAttendanceUseCase>(
       () => _i4.DeleteAttendanceUseCase(gh<_i477.AttendanceRepository>()),
+    );
+    gh.factory<_i653.GetPoleSupAttendancesUseCase>(
+      () =>
+          _i653.GetPoleSupAttendancesUseCase(gh<_i477.AttendanceRepository>()),
     );
     gh.factory<_i891.AddStudentUseCase>(
       () => _i891.AddStudentUseCase(gh<_i679.StudentRepository>()),
@@ -164,12 +175,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i880.StagePeriodRemoteDataSource>(),
       ),
     );
-    gh.factory<_i165.ArchiveAndResetLyceeUseCase>(
-      () => _i165.ArchiveAndResetLyceeUseCase(gh<_i477.AttendanceRepository>()),
+    gh.factory<_i165.GetLyceeArchiveDataUseCase>(
+      () => _i165.GetLyceeArchiveDataUseCase(gh<_i477.AttendanceRepository>()),
     );
-    gh.factory<_i165.ArchiveAndResetPolSupUseCase>(
-      () =>
-          _i165.ArchiveAndResetPolSupUseCase(gh<_i477.AttendanceRepository>()),
+    gh.factory<_i165.GetPolSupArchiveDataUseCase>(
+      () => _i165.GetPolSupArchiveDataUseCase(gh<_i477.AttendanceRepository>()),
+    );
+    gh.factory<_i165.ArchiveAndResetUseCase>(
+      () => _i165.ArchiveAndResetUseCase(gh<_i477.AttendanceRepository>()),
     );
     gh.factory<_i483.GetAttendancesUseCase>(
       () => _i483.GetAttendancesUseCase(gh<_i477.AttendanceRepository>()),
@@ -193,6 +206,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i140.GetGroupsUseCase>(
       () => _i140.GetGroupsUseCase(gh<_i535.GroupRepository>()),
     );
+    gh.factory<_i700.AttendanceBloc>(
+      () => _i700.AttendanceBloc(
+        getStudentsUseCase: gh<_i623.GetStudentsUseCase>(),
+        getAllStudentsUseCase: gh<_i892.GetAllStudentsUseCase>(),
+        getAttendancesUseCase: gh<_i483.GetAttendancesUseCase>(),
+        getPoleSupStudentsUseCase: gh<_i820.GetPoleSupStudentsUseCase>(),
+        getPoleSupAttendancesUseCase: gh<_i653.GetPoleSupAttendancesUseCase>(),
+        saveAttendanceUseCase: gh<_i763.SaveAttendanceUseCase>(),
+        deleteAttendanceUseCase: gh<_i4.DeleteAttendanceUseCase>(),
+      ),
+    );
     gh.factory<_i959.DeleteGroupUseCase>(
       () => _i959.DeleteGroupUseCase(gh<_i535.GroupRepository>()),
     );
@@ -205,15 +229,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1003.CreateGroupUseCase>(),
         gh<_i959.DeleteGroupUseCase>(),
         gh<_i1052.RenameGroupUseCase>(),
-      ),
-    );
-    gh.factory<_i700.AttendanceBloc>(
-      () => _i700.AttendanceBloc(
-        getStudentsUseCase: gh<_i623.GetStudentsUseCase>(),
-        getAllStudentsUseCase: gh<_i892.GetAllStudentsUseCase>(),
-        getAttendancesUseCase: gh<_i483.GetAttendancesUseCase>(),
-        saveAttendanceUseCase: gh<_i763.SaveAttendanceUseCase>(),
-        deleteAttendanceUseCase: gh<_i4.DeleteAttendanceUseCase>(),
       ),
     );
     gh.factory<_i328.CalendarImportUseCase>(

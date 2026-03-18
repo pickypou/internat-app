@@ -11,6 +11,7 @@ class StatusModal extends StatelessWidget {
   final AttendanceEntity? currentAttendance;
   final String groupId;
   final DateTime date;
+  final bool isPoleSup;
 
   const StatusModal({
     super.key,
@@ -18,6 +19,7 @@ class StatusModal extends StatelessWidget {
     required this.currentAttendance,
     required this.groupId,
     required this.date,
+    this.isPoleSup = false,
   });
 
   void _updateStatus(BuildContext context, String statusKey) {
@@ -51,9 +53,9 @@ class StatusModal extends StatelessWidget {
       isInBus: isInBus,
       note: newNote,
       groupId: groupId,
-      checkInTime: statusKey == 'Présent'
+      checkInTime: isPoleSup
           ? now
-          : currentAttendance?.checkInTime,
+          : (statusKey == 'Présent' ? now : currentAttendance?.checkInTime),
       checkOutTime: currentAttendance?.checkOutTime,
     );
     context.read<AttendanceBloc>().add(

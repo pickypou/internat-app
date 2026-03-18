@@ -54,6 +54,9 @@ class _FakeStudentDataSource implements StudentRemoteDataSource {
   Future<List<StudentModel>> getStudents(String groupId) async => [];
 
   @override
+  Future<List<StudentModel>> getPoleSupStudents() async => [];
+
+  @override
   Future<List<StudentModel>> getAllStudentsExcludingGroup(
     String excludedGroupName,
   ) async => [];

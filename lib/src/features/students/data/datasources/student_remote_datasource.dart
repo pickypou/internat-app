@@ -11,6 +11,7 @@ abstract class StudentRemoteDataSource {
   Future<List<StudentModel>> getAllStudentsExcludingGroup(
     String excludedGroupName,
   );
+  Future<List<StudentModel>> getPoleSupStudents();
   Future<void> addStudent(StudentEntity student);
   Future<void> updateStudent(StudentEntity student);
   Future<void> deleteStudent(String studentId);
@@ -77,6 +78,24 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
           .toList();
     } catch (e) {
       throw ServerFailure('Failed to fetch all students from Supabase: $e');
+    }
+  }
+
+  @override
+  Future<List<StudentModel>> getPoleSupStudents() async {
+    try {
+      final response = await _supabaseClient
+          .from('students')
+          .select('*, groups!inner(*)')
+          .eq('groups.is_pole_sup', true)
+          .order('last_name')
+          .order('first_name');
+
+      return (response as List<dynamic>)
+          .map((json) => StudentModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerFailure('Failed to fetch PoleSup students from Supabase: $e');
     }
   }
 

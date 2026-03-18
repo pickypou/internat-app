@@ -38,6 +38,9 @@ class _FakeStudentRepository implements StudentRepository {
       _students.where((s) => s.groupId == groupId).toList();
 
   @override
+  Future<List<StudentEntity>> getPoleSupStudents() async => [];
+
+  @override
   Future<void> addStudent(StudentEntity student) async {
     lastAdded = student;
     _students.add(student);

@@ -1,19 +1,20 @@
+import 'dart:typed_data';
 import 'package:injectable/injectable.dart';
 import '../repositories/attendance_repository.dart';
 import '../entities/attendance_archive_entity.dart';
 
 @injectable
-class ArchiveAndResetLyceeUseCase {
+class GetLyceeArchiveDataUseCase {
   final AttendanceRepository _repository;
 
-  ArchiveAndResetLyceeUseCase(this._repository);
+  GetLyceeArchiveDataUseCase(this._repository);
 
   Future<List<AttendanceArchiveEntity>> call({
     required DateTime startDate,
     required DateTime endDate,
     required String periodLabel,
   }) async {
-    return await _repository.archiveAndResetLycee(
+    return await _repository.getLyceeArchiveData(
       startDate,
       endDate,
       periodLabel,
@@ -22,20 +23,41 @@ class ArchiveAndResetLyceeUseCase {
 }
 
 @injectable
-class ArchiveAndResetPolSupUseCase {
+class GetPolSupArchiveDataUseCase {
   final AttendanceRepository _repository;
 
-  ArchiveAndResetPolSupUseCase(this._repository);
+  GetPolSupArchiveDataUseCase(this._repository);
 
   Future<List<AttendanceArchiveEntity>> call({
     required DateTime startDate,
     required DateTime endDate,
     required String periodLabel,
   }) async {
-    return await _repository.archiveAndResetPolSup(
+    return await _repository.getPolSupArchiveData(
       startDate,
       endDate,
       periodLabel,
+    );
+  }
+}
+
+@injectable
+class ArchiveAndResetUseCase {
+  final AttendanceRepository _repository;
+
+  ArchiveAndResetUseCase(this._repository);
+
+  Future<void> call({
+    required List<AttendanceArchiveEntity> archives,
+    required Uint8List pdfBytes,
+    required String reportName,
+    required String periodLabel,
+  }) async {
+    await _repository.archiveAndReset(
+      archives: archives,
+      pdfBytes: pdfBytes,
+      reportName: reportName,
+      periodLabel: periodLabel,
     );
   }
 }

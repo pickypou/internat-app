@@ -18,6 +18,15 @@ class LoadAttendance extends AttendanceEvent {
   List<Object?> get props => [groupId, date];
 }
 
+class LoadPoleSupClasses extends AttendanceEvent {
+  final DateTime date;
+
+  const LoadPoleSupClasses(this.date);
+
+  @override
+  List<Object?> get props => [date];
+}
+
 class UpdateAttendance extends AttendanceEvent {
   final AttendanceEntity attendance;
   final String groupId;

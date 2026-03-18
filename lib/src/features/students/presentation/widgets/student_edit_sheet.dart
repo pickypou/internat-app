@@ -19,6 +19,7 @@ class StudentEditSheet extends StatefulWidget {
   final String groupId;
   final DateTime date;
   final Color groupColor;
+  final bool isPoleSup;
 
   const StudentEditSheet({
     super.key,
@@ -27,6 +28,7 @@ class StudentEditSheet extends StatefulWidget {
     required this.groupId,
     required this.date,
     required this.groupColor,
+    this.isPoleSup = false,
   });
 
   @override
@@ -119,8 +121,8 @@ class _StudentEditSheetState extends State<StudentEditSheet> {
         isInBus: att?.isInBus ?? false,
         note: newNote,
         groupId: widget.groupId,
-        checkInTime: att?.checkInTime,
-        checkOutTime: noteChanged ? now : att?.checkOutTime,
+        checkInTime: widget.isPoleSup ? now : att?.checkInTime,
+        checkOutTime: (noteChanged || widget.isPoleSup) ? now : att?.checkOutTime,
       );
       if (mounted) {
         context.read<AttendanceBloc>().add(

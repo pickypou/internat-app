@@ -18,6 +18,11 @@ class StudentRepositoryImpl implements StudentRepository {
   }
 
   @override
+  Future<List<StudentEntity>> getPoleSupStudents() async {
+    return await _remoteDataSource.getPoleSupStudents();
+  }
+
+  @override
   Future<void> addStudent(StudentEntity student) async {
     return await _remoteDataSource.addStudent(student);
   }

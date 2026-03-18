@@ -123,6 +123,7 @@ class GlobalImportUseCase {
           final bool isPoleSup = canonicalName.toLowerCase().contains('alternant') ||
               canonicalName.toLowerCase().contains('pole-sup') ||
               canonicalName.toLowerCase().contains('pôle-sup') ||
+              canonicalName.toLowerCase().contains('pol-sup') ||
               canonicalName.toLowerCase().contains('meca') ||
               canonicalName.toLowerCase().contains('méca') ||
               canonicalName.toLowerCase().contains('sécurité') ||

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:internat_app/src/features/attendance/domain/entities/attendance_entity.dart';
 import 'package:internat_app/src/features/attendance/domain/repositories/attendance_repository.dart';
@@ -47,6 +48,10 @@ class _FakeAttendanceRepository implements AttendanceRepository {
       .toList();
 
   @override
+  Future<List<AttendanceEntity>> getPoleSupAttendances(DateTime date) async =>
+      [];
+
+  @override
   Future<AttendanceEntity> updateAttendance(AttendanceEntity attendance) async {
     lastUpserted = attendance;
     final i = _records.indexWhere((a) => a.id == attendance.id);
@@ -65,7 +70,7 @@ class _FakeAttendanceRepository implements AttendanceRepository {
   }
 
   @override
-  Future<List<AttendanceArchiveEntity>> archiveAndResetLycee(
+  Future<List<AttendanceArchiveEntity>> getLyceeArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
@@ -74,13 +79,21 @@ class _FakeAttendanceRepository implements AttendanceRepository {
   }
 
   @override
-  Future<List<AttendanceArchiveEntity>> archiveAndResetPolSup(
+  Future<List<AttendanceArchiveEntity>> getPolSupArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
   ) async {
     return [];
   }
+
+  @override
+  Future<void> archiveAndReset({
+    required List<AttendanceArchiveEntity> archives,
+    required Uint8List pdfBytes,
+    required String reportName,
+    required String periodLabel,
+  }) async {}
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

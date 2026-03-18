@@ -1,4 +1,5 @@
-import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../shared/error/failure.dart';
@@ -8,6 +9,7 @@ import '../../domain/entities/attendance_entity.dart';
 
 /// Virtual group constant — must not be sent as a UUID to Postgres.
 const _kAppelDimancheGroupId = 'appel-dimanche';
+const _kMixedPoleSupGroupId = 'mixed-pole-sup';
 const _kPolSupGroupName = 'pol-sup';
 
 abstract class AttendanceRemoteDataSource {
@@ -15,24 +17,31 @@ abstract class AttendanceRemoteDataSource {
     String groupId,
     DateTime date,
   );
+  Future<List<AttendanceModel>> getPoleSupAttendances(DateTime date);
   Future<AttendanceModel> upsertAttendance(AttendanceEntity attendance);
   Future<void> deleteAttendance(String id);
 
-  /// Archives attendances for all groups EXCEPT "pol-sup" and then deletes them.
-  /// Returns the archived records so a PDF can be generated.
-  Future<List<AttendanceArchiveModel>> archiveAndResetLycee(
+  /// Fetches attendances for Lycee groups to prepare archive.
+  Future<List<AttendanceArchiveModel>> getLyceeArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
   );
 
-  /// Archives attendances ONLY for the "pol-sup" group and then deletes them.
-  /// Returns the archived records so a PDF can be generated.
-  Future<List<AttendanceArchiveModel>> archiveAndResetPolSup(
+  /// Fetches attendances for Pol-Sup group to prepare archive.
+  Future<List<AttendanceArchiveModel>> getPolSupArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
   );
+
+  /// Saves the PDF, inserts JSON report(s), and deletes active records.
+  Future<void> archiveAndReset({
+    required List<AttendanceArchiveModel> archives,
+    required Uint8List pdfBytes,
+    required String reportName,
+    required String periodLabel,
+  });
 }
 
 @Injectable(as: AttendanceRemoteDataSource)
@@ -110,12 +119,33 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
+  Future<List<AttendanceModel>> getPoleSupAttendances(DateTime date) async {
+    try {
+      final dateString =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+      final response = await _supabaseClient
+          .from('attendance')
+          .select('*, groups!inner(*)')
+          .eq('groups.is_pole_sup', true)
+          .eq('check_date', dateString);
+
+      return (response as List)
+          .map((json) => AttendanceModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw ServerFailure('Failed to load PoleSup attendances: $e');
+    }
+  }
+
+  @override
   Future<AttendanceModel> upsertAttendance(AttendanceEntity attendance) async {
     try {
       // For the virtual appel-dimanche group, look up the student's real group_id
       // so we never store 'appel-dimanche' as a UUID in the DB.
       String effectiveGroupId = attendance.groupId;
-      if (effectiveGroupId == _kAppelDimancheGroupId) {
+      if (effectiveGroupId == _kAppelDimancheGroupId ||
+          effectiveGroupId == _kMixedPoleSupGroupId) {
         final studentResp = await _supabaseClient
             .from('students')
             .select('group_id')
@@ -157,26 +187,21 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   }
 
   @override
-  Future<List<AttendanceArchiveModel>> archiveAndResetLycee(
+  Future<List<AttendanceArchiveModel>> getLyceeArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
   ) async {
-    return await _archiveAndReset(
-      startDate,
-      endDate,
-      periodLabel,
-      excludePolSup: true,
-    );
+    return _getArchiveData(startDate, endDate, periodLabel, excludePolSup: true);
   }
 
   @override
-  Future<List<AttendanceArchiveModel>> archiveAndResetPolSup(
+  Future<List<AttendanceArchiveModel>> getPolSupArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel,
   ) async {
-    return await _archiveAndReset(
+    return _getArchiveData(
       startDate,
       endDate,
       periodLabel,
@@ -184,7 +209,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     );
   }
 
-  Future<List<AttendanceArchiveModel>> _archiveAndReset(
+  Future<List<AttendanceArchiveModel>> _getArchiveData(
     DateTime startDate,
     DateTime endDate,
     String periodLabel, {
@@ -197,9 +222,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           "${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}";
 
       // 1. Resolve pol-sup group id
-      final groupsResp = await _supabaseClient
-          .from('groups')
-          .select('id, name');
+      final groupsResp = await _supabaseClient.from('groups').select('id, name');
       final polSupIds = (groupsResp as List<dynamic>)
           .where(
             (g) =>
@@ -216,13 +239,11 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           .lte('check_date', endStr);
 
       final List<dynamic> allAttendances = attendanceResp as List<dynamic>;
-      if (allAttendances.isEmpty) return []; // Nothing to archive
+      if (allAttendances.isEmpty) return [];
 
       // 3. Filter attendances based on pol-sup rules
       final targetAttendances = allAttendances.where((att) {
         final gId = att['group_id'] as String;
-        // If excludePolSup is true, we want everything EXCEPT pol-sup.
-        // If excludePolSup is false, we want ONLY pol-sup.
         return excludePolSup
             ? !polSupIds.contains(gId)
             : polSupIds.contains(gId);
@@ -230,14 +251,12 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
 
       if (targetAttendances.isEmpty) return [];
 
-      // 4. Fetch students for hardcopies
+      // 4. Fetch students for details
       final targetStudentIds = targetAttendances
           .map((a) => a['student_id'] as String?)
           .whereType<String>()
           .toSet()
           .toList();
-
-      if (targetStudentIds.isEmpty) return [];
 
       final studentsResp = await _supabaseClient
           .from('students')
@@ -248,82 +267,129 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         for (final s in (studentsResp as List<dynamic>)) s['id'] as String: s,
       };
 
-      // 5. Build archive models
-      final archives = <Map<String, dynamic>>[];
-      final attendanceIdsToDelete = <String>[];
-
-      for (final att in targetAttendances) {
-        final sId = att['student_id'] as String?;
-        if (sId == null) continue; // shouldn't happen but safe
+      // 5. Build models
+      return targetAttendances.map((att) {
+        final sId = att['student_id'] as String;
         final student = studentMap[sId];
-        if (student == null) continue;
-
-        attendanceIdsToDelete.add(att['id'] as String);
-
-        // Compute status exactly like computedStatus
-        final isPresentEvening = att['is_present_evening'] as bool;
-        // Note: Stage logic normally happens in UI, but the archive is a snapshot.
-        // We will default to Présent/Absent for the raw data snapshot.
-        // Or if the app requires actual computed status, we could compute it
-        // with StagePeriodService, but for the archive history we store simple status.
-        String status = isPresentEvening ? 'Présent' : 'Absent';
-
-        archives.add({
-          'id': _generateUuidV4(),
-          'student_id': sId,
-          'group_id': att['group_id'],
-          'stored_last_name': student['last_name'] ?? '',
-          'stored_first_name': student['first_name'] ?? '',
-          'stored_class_name': student['class_name'] ?? '',
-          'stored_room_number': student['room_number'] ?? '',
-          'check_date': att['check_date'],
-          'status': status,
-          'note': att['note'],
-          'period_label': periodLabel,
-        });
-      }
-
-      if (archives.isNotEmpty) {
-        // 6. Insert into attendance_history
-        await _supabaseClient.from('attendance_history').insert(archives);
-
-        // 7. Delete from original attendance table
-        // Supabase limits .inFilter to a certain amount,
-        // chunking by 100 just in case.
-        for (var i = 0; i < attendanceIdsToDelete.length; i += 100) {
-          final chunk = attendanceIdsToDelete.skip(i).take(100).toList();
-          await _supabaseClient
-              .from('attendance')
-              .delete()
-              .inFilter('id', chunk);
-        }
-
-        // Return the models for PDF generation
-        return archives.map((json) {
-          // Add dummy ID and archiveDate since Supreme gives it to us on insert, we just need it for the UI/PDF right now.
-          json['id'] = '';
-          json['archive_date'] = DateTime.now().toIso8601String();
-          return AttendanceArchiveModel.fromJson(json);
-        }).toList();
-      }
-      return [];
+        return AttendanceArchiveModel(
+          id: '', // dummy ID for the UI
+          originalAttendanceId: att['id'] as String,
+          studentId: sId,
+          groupId: att['group_id'] as String,
+          storedLastName: student?['last_name'] ?? '',
+          storedFirstName: student?['first_name'] ?? '',
+          storedClassName: student?['class_name'] ?? '',
+          storedRoomNumber: student?['room_number'] ?? '',
+          periodLabel: periodLabel,
+          checkDate: DateTime.parse(att['check_date'] as String),
+          status: (att['is_present_evening'] as bool) ? 'Présent' : 'Absent',
+          note: att['note'] as String?,
+          archiveDate: DateTime.now(),
+          checkInTime: att['check_in_time'] != null
+              ? DateTime.tryParse(att['check_in_time'] as String)
+              : null,
+          checkOutTime: att['check_out_time'] != null
+              ? DateTime.tryParse(att['check_out_time'] as String)
+              : null,
+        );
+      }).toList();
     } catch (e) {
-      throw ServerFailure('Failed to archive and reset: $e');
+      throw ServerFailure('Failed to get archive data: $e');
     }
   }
 
-  String _generateUuidV4() {
-    final rnd = Random.secure();
-    final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
-    // Set UUID version to 4
-    bytes[6] = (bytes[6] & 0x0F) | 0x40;
-    // Set variant to RFC4122
-    bytes[8] = (bytes[8] & 0x3F) | 0x80;
+  @override
+  Future<void> archiveAndReset({
+    required List<AttendanceArchiveModel> archives,
+    required Uint8List pdfBytes,
+    required String reportName,
+    required String periodLabel,
+  }) async {
+    try {
+      debugPrint('[ARCHIVE] Début de archiveAndReset pour $reportName');
+      if (archives.isEmpty) {
+        debugPrint('[ARCHIVE] Liste d\'archives vide, arrêt.');
+        return;
+      }
 
-    String hex(List<int> bytes) {
-      return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+      // 1. Upload PDF once
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'archive_$timestamp.pdf';
+      debugPrint('[ARCHIVE] Nom du fichier PDF : $fileName');
+
+      String pdfUrl;
+      try {
+        debugPrint('[ARCHIVE] Tentative d\'upload du PDF...');
+        await _supabaseClient.storage.from('pdf_archives').uploadBinary(
+          fileName,
+          pdfBytes,
+          fileOptions: const FileOptions(
+            contentType: 'application/pdf',
+            upsert: true,
+          ),
+        );
+        debugPrint('[ARCHIVE] Upload PDF réussi.');
+        pdfUrl = _supabaseClient.storage
+            .from('pdf_archives')
+            .getPublicUrl(fileName);
+        debugPrint('[ARCHIVE] URL publique récupérée : $pdfUrl');
+      } catch (storageError) {
+        debugPrint('[ARCHIVE] ERREUR STORAGE : $storageError');
+        throw ServerFailure(
+          'Erreur critique lors de l\'upload du PDF (Bucket: pdf_archives) : $storageError',
+        );
+      }
+
+      // 2. Group by groupId and insert into attendance_history
+      debugPrint('[ARCHIVE] Groupement des données par groupId...');
+      final grouped = <String, List<AttendanceArchiveModel>>{};
+      for (final arc in archives) {
+        grouped.putIfAbsent(arc.groupId, () => []).add(arc);
+      }
+      debugPrint('[ARCHIVE] Nombre de groupes à traiter : ${grouped.length}');
+
+      for (final entry in grouped.entries) {
+        final gId = entry.key;
+        final groupArchives = entry.value;
+        debugPrint('[ARCHIVE] Traitement du groupe : $gId (${groupArchives.length} enregistrements)');
+
+        final reportData = groupArchives.map((a) => a.toJson()).toList();
+
+        final referenceDate = groupArchives.first.checkDate;
+        final checkDateStr =
+            "${referenceDate.year}-${referenceDate.month.toString().padLeft(2, '0')}-${referenceDate.day.toString().padLeft(2, '0')}";
+
+        debugPrint('[ARCHIVE] Insertion dans attendance_history pour le groupe $gId...');
+        await _supabaseClient.from('attendance_history').insert({
+          'report_name': reportName.isNotEmpty ? reportName : 'Sans Nom',
+          'period_label': periodLabel.isNotEmpty ? periodLabel : 'Sans Période',
+          'report_data': reportData,
+          'pdf_url': pdfUrl,
+          'group_id': gId,
+          'check_date': checkDateStr,
+          'archive_date': DateTime.now().toUtc().toIso8601String(),
+        });
+        debugPrint('[ARCHIVE] Insertion réussie pour le groupe $gId.');
+      }
+
+      // 3. Delete from original table
+      final idsToDelete = archives
+          .map((a) => a.originalAttendanceId)
+          .whereType<String>()
+          .toList();
+      debugPrint('[ARCHIVE] Nettoyage de la table active (${idsToDelete.length} IDs à supprimer)...');
+
+      for (var i = 0; i < idsToDelete.length; i += 100) {
+        final chunk = idsToDelete.skip(i).take(100).toList();
+        await _supabaseClient
+            .from('attendance')
+            .delete()
+            .inFilter('id', chunk);
+      }
+      debugPrint('[ARCHIVE] Archivage et réinitialisation terminés avec succès.');
+    } catch (e) {
+      debugPrint('[ARCHIVE] ERREUR GLOBALE : $e');
+      throw ServerFailure('Failed to archive and reset: $e');
     }
-
-    return '${hex(bytes.sublist(0, 4))}-${hex(bytes.sublist(4, 6))}-${hex(bytes.sublist(6, 8))}-${hex(bytes.sublist(8, 10))}-${hex(bytes.sublist(10, 16))}';
   }
 }

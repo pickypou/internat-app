@@ -5,6 +5,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../shared/theme/theme_ext.dart';
 import '../../../attendance/presentation/widgets/attendance_table_widget.dart';
+import '../../../attendance/presentation/widgets/segmented_progress_bar.dart';
+import '../../../attendance/presentation/bloc/attendance_bloc.dart';
+import '../../../attendance/presentation/bloc/attendance_event.dart';
+import '../../../attendance/presentation/bloc/attendance_state.dart';
 import '../../../students/presentation/widgets/add_student_form.dart';
 import '../../../students/presentation/bloc/student_bloc.dart';
 import '../bloc/group_bloc.dart';
@@ -214,38 +218,57 @@ class _LyceePageState extends State<LyceePage> {
                           } catch (_) {}
                         }
 
-                        return ExpansionTile(
-                          initiallyExpanded: index == 0,
-                          collapsedIconColor: parsedColor,
-                          iconColor: parsedColor,
-                          title: Text(
-                            group.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: parsedColor,
-                            ),
-                          ),
-                          children: [
-                            Container(
-                              height: MediaQuery.of(context).size.height * 0.5,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(
-                                    color: parsedColor.withValues(alpha: 0.3),
+                        return BlocProvider(
+                          create: (context) => getIt<AttendanceBloc>()
+                            ..add(LoadAttendance(group.id, _selectedDate)),
+                          child: BlocBuilder<AttendanceBloc, AttendanceState>(
+                            builder: (context, attendanceState) {
+                              return ExpansionTile(
+                                initiallyExpanded: index == 0,
+                                collapsedIconColor: parsedColor,
+                                iconColor: parsedColor,
+                                title: Text(
+                                  group.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: parsedColor,
                                   ),
                                 ),
-                              ),
-                              child: AttendanceTableWidget(
-                                groupId: group.id,
-                                groupName: group.name,
-                                groupColorHex: group.color,
-                                selectedDate: _selectedDate,
-                                showAll: _showAll,
-                                sortByClass: _sortByClass,
-                                reloadTrigger: _reloadTrigger,
-                              ),
-                            ),
-                          ],
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: attendanceState is AttendanceLoaded
+                                      ? SegmentedProgressBar(
+                                          students: attendanceState.students,
+                                          attendances: attendanceState.attendances,
+                                        )
+                                      : const LinearProgressIndicator(
+                                          minHeight: 2,
+                                        ),
+                                ),
+                                children: [
+                                  Container(
+                                    height: MediaQuery.of(context).size.height * 0.5,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        top: BorderSide(
+                                          color: parsedColor.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    child: AttendanceTableWidget(
+                                      groupId: group.id,
+                                      groupName: group.name,
+                                      groupColorHex: group.color,
+                                      selectedDate: _selectedDate,
+                                      showAll: _showAll,
+                                      sortByClass: _sortByClass,
+                                      reloadTrigger: _reloadTrigger,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         );
                       },
                     );

@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 /// All fields are stored as raw text so they survive student/group deletion.
 class AttendanceArchiveEntity extends Equatable {
   final String id;
+  final String? originalAttendanceId;
   final String studentId;
   final String groupId;
 
@@ -23,6 +24,7 @@ class AttendanceArchiveEntity extends Equatable {
 
   const AttendanceArchiveEntity({
     required this.id,
+    this.originalAttendanceId,
     required this.studentId,
     required this.groupId,
     required this.storedLastName,
@@ -41,6 +43,7 @@ class AttendanceArchiveEntity extends Equatable {
   @override
   List<Object?> get props => [
     id,
+    originalAttendanceId,
     studentId,
     groupId,
     storedLastName,

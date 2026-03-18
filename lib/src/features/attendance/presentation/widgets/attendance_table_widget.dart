@@ -38,6 +38,7 @@ class AttendanceTableWidget extends StatefulWidget {
   final bool showAll;
   final bool sortByClass;
   final int reloadTrigger;
+  final bool isPoleSup;
 
   const AttendanceTableWidget({
     super.key,
@@ -48,7 +49,13 @@ class AttendanceTableWidget extends StatefulWidget {
     this.showAll = false,
     this.sortByClass = false,
     this.reloadTrigger = 0,
+    this.isPoleSup = false,
+    this.students,
+    this.attendances,
   });
+
+  final List<StudentEntity>? students;
+  final List<AttendanceEntity>? attendances;
 
   @override
   State<AttendanceTableWidget> createState() => _AttendanceTableWidgetState();
@@ -70,8 +77,10 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
   @override
   void initState() {
     super.initState();
-    _bloc = getIt<AttendanceBloc>()
-      ..add(LoadAttendance(widget.groupId, widget.selectedDate));
+    _bloc = context.read<AttendanceBloc>();
+    if (widget.students == null || widget.attendances == null) {
+      _bloc.add(LoadAttendance(widget.groupId, widget.selectedDate));
+    }
     _loadPeriods();
 
     _leftScrollController.addListener(() {
@@ -96,8 +105,9 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
   @override
   void didUpdateWidget(covariant AttendanceTableWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.selectedDate != oldWidget.selectedDate ||
-        widget.reloadTrigger != oldWidget.reloadTrigger) {
+    if ((widget.selectedDate != oldWidget.selectedDate ||
+            widget.reloadTrigger != oldWidget.reloadTrigger) &&
+        (widget.students == null || widget.attendances == null)) {
       _bloc.add(LoadAttendance(widget.groupId, widget.selectedDate));
     }
   }
@@ -137,8 +147,9 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
           child: StatusModal(
             student: student,
             currentAttendance: todayAttendance,
-            groupId: widget.groupId,
+            groupId: student.groupId, // Use real student group ID
             date: widget.selectedDate,
+            isPoleSup: widget.isPoleSup,
           ),
         );
       },
@@ -165,9 +176,10 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
           child: StudentEditSheet(
             student: student,
             currentAttendance: todayAtt,
-            groupId: widget.groupId,
+            groupId: student.groupId, // Use real student group ID
             date: widget.selectedDate,
             groupColor: groupColor,
+            isPoleSup: widget.isPoleSup,
           ),
         );
       },
@@ -529,65 +541,73 @@ class _AttendanceTableWidgetState extends State<AttendanceTableWidget> {
       value: _bloc,
       child: BlocBuilder<AttendanceBloc, AttendanceState>(
         builder: (context, state) {
-          if (state is AttendanceLoading) {
+          List<StudentEntity> students;
+          List<AttendanceEntity> attendances;
+
+          if (widget.students != null && widget.attendances != null) {
+            students = widget.students!;
+            attendances = widget.attendances!;
+          } else if (state is AttendanceLoaded) {
+            students = state.students;
+            attendances = state.attendances;
+          } else if (state is AttendanceLoading) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is AttendanceError) {
             return Center(child: Text(state.message));
-          } else if (state is AttendanceLoaded) {
-            final List<StudentEntity> listItems =
-                state.students.where((student) {
-                  if (widget.showAll || _periods.isEmpty) return true;
-                  final status = StagePeriodService.classStatusOn(
-                    student.className.isEmpty
-                        ? 'Sans classe'
-                        : student.className,
-                    widget.selectedDate,
-                    _periods,
-                  );
-                  return status != 'STAGE';
-                }).toList()..sort((a, b) {
-                  if (widget.sortByClass) {
-                    final classA = a.className.isEmpty ? 'ZZZ' : a.className;
-                    final classB = b.className.isEmpty ? 'ZZZ' : b.className;
-                    final classCompare = classA.compareTo(classB);
-                    if (classCompare != 0) return classCompare;
-                  }
-                  final last = a.lastName.compareTo(b.lastName);
-                  return last != 0 ? last : a.firstName.compareTo(b.firstName);
-                });
+          } else {
+            return const SizedBox.shrink();
+          }
 
-            if (listItems.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Aucun élève à afficher',
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
-                    ),
+          final List<StudentEntity> listItems = students.where((student) {
+            if (widget.showAll || _periods.isEmpty) return true;
+            final status = StagePeriodService.classStatusOn(
+              student.className.isEmpty ? 'Sans classe' : student.className,
+              widget.selectedDate,
+              _periods,
+            );
+            return status != 'STAGE';
+          }).toList()
+            ..sort((a, b) {
+              if (widget.sortByClass) {
+                final classA = a.className.isEmpty ? 'ZZZ' : a.className;
+                final classB = b.className.isEmpty ? 'ZZZ' : b.className;
+                final classCompare = classA.compareTo(classB);
+                if (classCompare != 0) return classCompare;
+              }
+              final last = a.lastName.compareTo(b.lastName);
+              return last != 0 ? last : a.firstName.compareTo(b.firstName);
+            });
+
+          if (listItems.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Aucun élève à afficher',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              );
-            }
-
-            return Row(
-              children: [
-                _buildLeftColumn(
-                  context,
-                  listItems,
-                  state.attendances,
-                  parsedColor,
-                ),
-                _buildRightColumns(
-                  context,
-                  listItems,
-                  state.attendances,
-                  parsedColor,
-                ),
-              ],
+              ),
             );
           }
-          return const SizedBox.shrink();
+
+          return Row(
+            children: [
+              _buildLeftColumn(
+                context,
+                listItems,
+                attendances,
+                parsedColor,
+              ),
+              _buildRightColumns(
+                context,
+                listItems,
+                attendances,
+                parsedColor,
+              ),
+            ],
+          );
         },
       ),
     );
