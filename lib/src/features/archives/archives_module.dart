@@ -1,14 +1,17 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'data/datasources/archives_remote_datasource.dart';
+import '../../core/di/injection.dart';
+import 'presentation/bloc/archives_bloc.dart';
+import 'presentation/bloc/archives_event.dart';
 import 'presentation/pages/archives_page.dart';
 
 class ArchivesModule {
   static List<GoRoute> get routes => [
         GoRoute(
           path: '/archives',
-          builder: (context, state) => ArchivesPage(
-            dataSource: ArchivesRemoteDataSource(Supabase.instance.client),
+          builder: (context, state) => BlocProvider(
+            create: (context) => getIt<ArchivesBloc>()..add(LoadArchives()),
+            child: const ArchivesPage(),
           ),
         ),
       ];

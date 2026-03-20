@@ -13,6 +13,15 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:supabase_flutter/supabase_flutter.dart' as _i454;
 
+import '../../features/archives/data/datasources/archives_remote_datasource.dart'
+    as _i407;
+import '../../features/archives/data/repositories/archives_repository_impl.dart'
+    as _i601;
+import '../../features/archives/domain/repositories/archives_repository.dart'
+    as _i614;
+import '../../features/archives/domain/usecases/get_archives_usecase.dart'
+    as _i266;
+import '../../features/archives/presentation/bloc/archives_bloc.dart' as _i123;
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart'
     as _i425;
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart'
@@ -112,6 +121,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i892.GetAllStudentsUseCase>(
       () => _i892.GetAllStudentsUseCase(gh<_i65.StudentRemoteDataSource>()),
     );
+    gh.factory<_i407.ArchivesRemoteDataSource>(
+      () => _i407.ArchivesRemoteDataSourceImpl(gh<_i454.SupabaseClient>()),
+    );
     gh.factory<_i425.AttendanceRemoteDataSource>(
       () => _i425.AttendanceRemoteDataSourceImpl(
         supabaseClient: gh<_i454.SupabaseClient>(),
@@ -148,6 +160,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i653.GetPoleSupAttendancesUseCase>(
       () =>
           _i653.GetPoleSupAttendancesUseCase(gh<_i477.AttendanceRepository>()),
+    );
+    gh.lazySingleton<_i614.ArchivesRepository>(
+      () => _i601.ArchivesRepositoryImpl(gh<_i407.ArchivesRemoteDataSource>()),
     );
     gh.factory<_i891.AddStudentUseCase>(
       () => _i891.AddStudentUseCase(gh<_i679.StudentRepository>()),
@@ -231,11 +246,17 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1052.RenameGroupUseCase>(),
       ),
     );
+    gh.factory<_i266.GetArchivesUseCase>(
+      () => _i266.GetArchivesUseCase(gh<_i614.ArchivesRepository>()),
+    );
     gh.factory<_i328.CalendarImportUseCase>(
       () => _i328.CalendarImportUseCase(gh<_i539.StagePeriodRepository>()),
     );
     gh.factory<_i415.GetStagePeriodsUseCase>(
       () => _i415.GetStagePeriodsUseCase(gh<_i539.StagePeriodRepository>()),
+    );
+    gh.factory<_i123.ArchivesBloc>(
+      () => _i123.ArchivesBloc(gh<_i266.GetArchivesUseCase>()),
     );
     return this;
   }

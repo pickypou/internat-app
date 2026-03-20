@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/models/attendance_history_report.dart';
+import '../../domain/entities/attendance_history_report.dart';
 
 class ReportDetailsSheet extends StatelessWidget {
   final AttendanceHistoryReport report;

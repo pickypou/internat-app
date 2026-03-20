@@ -14,7 +14,6 @@ import '../../domain/entities/group_entity.dart';
 import '../../../attendance/presentation/bloc/attendance_bloc.dart';
 import '../../../attendance/presentation/bloc/attendance_event.dart';
 import '../../../attendance/presentation/bloc/attendance_state.dart';
-import '../../../students/domain/entities/student_entity.dart';
 
 class PoleSupPage extends StatefulWidget {
   const PoleSupPage({super.key});
@@ -207,95 +206,20 @@ class _PoleSupPageState extends State<PoleSupPage> {
                       );
                     }
 
-                    // Group students by className
-                    final Map<String, List<StudentEntity>> classGroups = {};
-                    for (final s in students) {
-                      final className = s.className.isEmpty ? 'Sans classe' : s.className;
-                      classGroups.putIfAbsent(className, () => []).add(s);
-                    }
-
-                    final sortedClasses = classGroups.keys.toList()..sort();
-
-                    return ListView.builder(
-                      itemCount: sortedClasses.length,
-                      itemBuilder: (context, index) {
-                        final className = sortedClasses[index];
-                        final classStudents = classGroups[className]!;
-
-                        // Count presence for this class
-                        final classStudentIds =
-                            classStudents.map((s) => s.id).toSet();
-                        final classAttendances = attendances
-                            .where((a) => classStudentIds.contains(a.studentId))
-                            .toList();
-                        final presentCount = classAttendances
-                            .where((a) => a.isPresentEvening)
-                            .length;
-
-                        final Color parsedColor = context.colorScheme.primary;
-
-                        return ExpansionTile(
-                          initiallyExpanded: false,
-                          collapsedIconColor: parsedColor,
-                          iconColor: parsedColor,
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  className,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: parsedColor,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: parsedColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '$presentCount / ${classStudents.length}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: parsedColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          children: [
-                            Container(
-                              height: MediaQuery.of(context).size.height * 0.5,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(
-                                    color: parsedColor.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                              ),
-                              child: AttendanceTableWidget(
-                                groupId:
-                                    'mixed-pole-sup', // Not used when injecting data
-                                groupName: className,
-                                groupColorHex: '4CAF50', // Default green
-                                selectedDate: _selectedDate,
-                                showAll: _showAll,
-                                sortByClass: _sortByClass,
-                                reloadTrigger: _reloadTrigger,
-                                isPoleSup: true,
-                                students: classStudents,
-                                attendances: classAttendances,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                    return Container(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: AttendanceTableWidget(
+                        groupId: 'global-pole-sup',
+                        groupName: 'Pôle-Sup',
+                        groupColorHex: '4CAF50',
+                        selectedDate: _selectedDate,
+                        showAll: _showAll,
+                        sortByClass: _sortByClass,
+                        reloadTrigger: _reloadTrigger,
+                        isPoleSup: true,
+                        students: students,
+                        attendances: attendances,
+                      ),
                     );
                   }
                   return const SizedBox.shrink();

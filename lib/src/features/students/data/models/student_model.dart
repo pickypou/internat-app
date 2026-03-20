@@ -9,6 +9,7 @@ class StudentModel extends StudentEntity {
     required super.roomNumber,
     required super.className,
     required super.groupId,
+    super.alt,
   });
 
   /// Creates a StudentModel from a JSON map (Supabase).
@@ -20,6 +21,7 @@ class StudentModel extends StudentEntity {
       roomNumber: json['room_number'] as String,
       className: json['class_name'] as String,
       groupId: json['group_id'] as String,
+      alt: json['alt'] as String?,
     );
   }
 
@@ -32,6 +34,7 @@ class StudentModel extends StudentEntity {
       'room_number': roomNumber,
       'class_name': className,
       'group_id': groupId,
+      'alt': alt,
     };
   }
 }

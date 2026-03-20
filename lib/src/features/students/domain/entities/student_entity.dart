@@ -9,6 +9,7 @@ class StudentEntity extends Equatable {
   final String roomNumber;
   final String className;
   final String groupId;
+  final String? alt;
 
   const StudentEntity({
     required this.id,
@@ -17,7 +18,28 @@ class StudentEntity extends Equatable {
     required this.roomNumber,
     required this.className,
     required this.groupId,
+    this.alt,
   });
+
+  StudentEntity copyWith({
+    String? id,
+    String? firstName,
+    String? lastName,
+    String? roomNumber,
+    String? className,
+    String? groupId,
+    String? alt,
+  }) {
+    return StudentEntity(
+      id: id ?? this.id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      roomNumber: roomNumber ?? this.roomNumber,
+      className: className ?? this.className,
+      groupId: groupId ?? this.groupId,
+      alt: alt ?? this.alt,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -27,5 +49,6 @@ class StudentEntity extends Equatable {
     roomNumber,
     className,
     groupId,
+    alt,
   ];
 }

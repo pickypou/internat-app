@@ -51,17 +51,13 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
     String excludedGroupName,
   ) async {
     try {
-      // Step 1: fetch all groups to identify the excluded one(s)
+      // Step 1: fetch all groups to identify the excluded one(s) (Pôle-Sup)
       final groupsResponse = await _supabaseClient
           .from('groups')
-          .select('id, name');
+          .select('id, is_pole_sup');
 
       final excludedGroupIds = (groupsResponse as List<dynamic>)
-          .where(
-            (g) =>
-                (g['name'] as String).toLowerCase().trim() ==
-                excludedGroupName.toLowerCase().trim(),
-          )
+          .where((g) => g['is_pole_sup'] == true)
           .map((g) => g['id'] as String)
           .toSet();
 
@@ -110,6 +106,7 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
         roomNumber: student.roomNumber,
         className: student.className,
         groupId: student.groupId,
+        alt: student.alt,
       );
 
       await _supabaseClient.from('students').insert(model.toJson());
@@ -128,6 +125,7 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
         roomNumber: student.roomNumber,
         className: student.className,
         groupId: student.groupId,
+        alt: student.alt,
       );
 
       await _supabaseClient
@@ -208,6 +206,7 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
               .update({
                 'room_number': student.roomNumber,
                 'group_id': student.groupId,
+                'alt': student.alt,
               })
               .eq('id', existingId);
         } else {
@@ -219,6 +218,7 @@ class StudentRemoteDataSourceImpl implements StudentRemoteDataSource {
             'room_number': student.roomNumber,
             'class_name': student.className,
             'group_id': student.groupId,
+            'alt': student.alt,
           });
         }
       }

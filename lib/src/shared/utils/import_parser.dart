@@ -37,7 +37,13 @@ abstract final class ImportParser {
     int lineIndex,
   ) {
     final parts = line.contains('\t') ? line.split('\t') : line.split(';');
-    final cols = parts.map((p) => p.trim()).toList();
+    var cols = parts.map((p) => p.trim()).toList();
+
+    // If there's a trailing empty column (common in Excel), remove it
+    // if it results in more columns than the 4-col format (NomComplet;Classe;Chambre;Groupe).
+    if (cols.length >= 5 && cols.last.isEmpty) {
+      cols.removeLast();
+    }
 
     String lastName;
     String firstName;
@@ -72,6 +78,12 @@ abstract final class ImportParser {
       );
     }
 
+    // ── Alt field (optional 6th column in 5-col format or 5th in others) ─────
+    String? alt;
+    if (cols.length >= 6) {
+      alt = cols[5];
+    }
+
     // ── Normalisation ────────────────────────────────────────────────────────
     lastName = lastName.toUpperCase();
     firstName = titleCase(firstName);
@@ -91,6 +103,7 @@ abstract final class ImportParser {
         className: className,
         roomNumber: roomNumber,
         groupId: groupId,
+        alt: alt,
       ),
     );
   }
@@ -99,7 +112,13 @@ abstract final class ImportParser {
   /// Returns empty string if not enough columns.
   static String extractGroupName(String line) {
     final parts = line.contains('\t') ? line.split('\t') : line.split(';');
-    final cols = parts.map((p) => p.trim()).toList();
+    var cols = parts.map((p) => p.trim()).toList();
+
+    // Consistency with parseLine: ignore trailing empty column if it exceeds 4-col format
+    if (cols.length >= 5 && cols.last.isEmpty) {
+      cols.removeLast();
+    }
+
     if (cols.length == 5) return cols[4];
     if (cols.length == 4) return cols[3];
     return '';

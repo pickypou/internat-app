@@ -10,7 +10,7 @@ L'application repose strictement sur l'architecture **FSD (Feature-Sliced Design
 - [02_technical_architecture.md](doc/02_technical_architecture.md) : Détails FSD/Clean Architecture.
 - [03_project_structure.md](doc/03_project_structure.md) : Arborescence de `lib/` et règles de placement de fichiers.
 - [04_dependency_injection.md](doc/04_dependency_injection.md) : Modèle d'injection (GetIt + Injectable).
-- [05_firebase_backend.md](doc/05_firebase_backend.md) : Intégration Supabase.
+- [05_supabase_backend.md](doc/05_firebase_backend.md) : Intégration Supabase.
 - [06_styling_and_theming.md](doc/06_styling_and_theming.md) : Moteur de thème et Responsive.
 - [07_security.md](doc/07_security.md) : Sécurité et accès aux données.
 - [08_testing_strategy.md](doc/08_testing_strategy.md) : Démarche et scope de tests.

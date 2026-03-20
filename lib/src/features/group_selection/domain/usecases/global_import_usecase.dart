@@ -106,60 +106,51 @@ class GlobalImportUseCase {
     for (final line in lines) {
       lineIndex++;
       try {
-        // Extract group name first — needed before delegating to ImportParser
-        final groupName = ImportParser.extractGroupName(line);
-        if (groupName.isEmpty) {
-          skippedLines.add('Ligne $lineIndex : colonne Groupe manquante');
-          continue;
-        }
+        final groupToken = ImportParser.extractGroupName(line);
+        final tokenClean = groupToken.toLowerCase().replaceAll(' ', '');
+        
+        final bool isAlt1 = tokenClean == 'alt1';
+        final bool isAlt2 = tokenClean == 'alt2' || tokenClean == 'atl2';
+        final bool isEmpty = groupToken.isEmpty;
+        final bool isPoleSupEntry = isAlt1 || isAlt2 || isEmpty;
 
-        final canonicalName = _normalizeName(groupName);
-        final groupKey = canonicalName.toLowerCase();
+        final String canonicalName = isPoleSupEntry ? 'Pôle-Sup' : _normalizeName(groupToken);
+        final String groupKey = canonicalName.toLowerCase();
+        final String? altValue = isAlt1 ? 'Alt1' : (isAlt2 ? 'Alt2' : null);
 
         if (!groupIdCache.containsKey(groupKey)) {
-          final color = _randomColor(usedColors);
-          usedColors.add(color);
+          final color = isPoleSupEntry ? '4CAF50' : _randomColor(usedColors);
+          if (!isPoleSupEntry) usedColors.add(color);
           
-          final bool isPoleSup = canonicalName.toLowerCase().contains('alternant') ||
-              canonicalName.toLowerCase().contains('pole-sup') ||
-              canonicalName.toLowerCase().contains('pôle-sup') ||
-              canonicalName.toLowerCase().contains('pol-sup') ||
-              canonicalName.toLowerCase().contains('meca') ||
-              canonicalName.toLowerCase().contains('méca') ||
-              canonicalName.toLowerCase().contains('sécurité') ||
-              canonicalName.toLowerCase().contains('securite');
-
           dev.log(
-            '[GlobalImport] Creating group "$canonicalName" (PôleSup: $isPoleSup) color #$color',
+            '[GlobalImport] Creating group "$canonicalName" (PôleSup: $isPoleSupEntry) color #$color',
           );
           
-          // Cast repository to GroupRepositoryImpl to access the extended parameter if needed,
-          // OR verify that ensureGroupExists supports it? Wait, we didn't add isPoleSup to ensureGroupExists. Let's fix ensureGroupExists.
           final newId = await _groupRepository.ensureGroupExists(
             canonicalName,
             color,
-            isPoleSup: isPoleSup,
+            isPoleSup: isPoleSupEntry,
           );
           groupIdCache[groupKey] = newId;
-          dev.log('[GlobalImport] Group "$canonicalName" → id=$newId');
         }
 
-        // Delegate line parsing to shared ImportParser
         final parsed = ImportParser.parseLine(
           line,
           groupIdCache[groupKey]!,
           lineIndex,
         );
+
         if (!parsed.isValid) {
-          dev.log('[GlobalImport] Line $lineIndex SKIPPED: ${parsed.error}');
           skippedLines.add(parsed.error!);
           continue;
         }
 
-        dev.log(
-          '[GlobalImport] Line $lineIndex OK: ${parsed.student!.lastName} ${parsed.student!.firstName}',
-        );
-        students.add(parsed.student!);
+        var student = parsed.student!;
+        if (isPoleSupEntry) {
+          student = student.copyWith(alt: altValue);
+        }
+
+        students.add(student);
       } catch (e, stack) {
         dev.log('[GlobalImport] Line $lineIndex ERROR: $e\n$stack');
         skippedLines.add('Ligne $lineIndex : erreur inattendue ($e)');

@@ -8,12 +8,11 @@ abstract final class AppColors {
   /// Appel Dimanche — warm orange
   static const Color appelOrange = Color(0xFFFF6D00);
 
-  /// Status: STAGE badge
-  static const Color stageBadge = Colors.orange;
-
-  /// Status: HORS_QUINZAINE badge
+  /// Status UI
+  static const Color stageBadge = Color(0xFF1976D2); // Blue 700
+  static const Color presentGreen = Color(0xFF388E3C); // Green 700
+  static const Color absentRed = Color(0xFFD32F2F); // Red 700
+  static const Color warningOrange = Color(0xFFF57C00); // Orange 700
   static const Color horsBadge = Colors.blue;
-
-  /// Status: ALTERNANCE badge
   static const Color alternanceBadge = Colors.purple;
 }

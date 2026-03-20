@@ -1,72 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../data/datasources/archives_remote_datasource.dart';
-import '../../data/models/attendance_history_report.dart';
+import '../bloc/archives_bloc.dart';
+import '../bloc/archives_event.dart';
+import '../bloc/archives_state.dart';
+import '../../domain/entities/attendance_history_report.dart';
 import '../widgets/report_details_sheet.dart';
 
 class ArchivesPage extends StatefulWidget {
-  final ArchivesRemoteDataSource dataSource;
-  const ArchivesPage({super.key, required this.dataSource});
+  const ArchivesPage({super.key});
 
   @override
   State<ArchivesPage> createState() => _ArchivesPageState();
 }
 
 class _ArchivesPageState extends State<ArchivesPage> {
-  List<AttendanceHistoryReport> _allReports = [];
-  List<AttendanceHistoryReport> _filtered = [];
-  bool _loading = true;
-  String? _error;
   final _searchController = TextEditingController();
   final DateFormat _dateFmt = DateFormat('dd/MM/yyyy');
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchReports();
-    _searchController.addListener(_applyFilter);
+    _searchController.addListener(() {
+      setState(() {
+        _query = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _fetchReports() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final reports = await widget.dataSource.fetchReports();
-      setState(() {
-        _allReports = reports;
-        _filtered = reports;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  void _applyFilter() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filtered = _allReports;
-      } else {
-        _filtered = _allReports.where((r) {
-          return r.reportName.toLowerCase().contains(query) ||
-              r.periodLabel.toLowerCase().contains(query) ||
-              _dateFmt.format(r.checkDate).contains(query);
-        }).toList();
-      }
-    });
   }
 
   Future<void> _openPdf(String? url) async {
@@ -95,6 +62,15 @@ class _ArchivesPageState extends State<ArchivesPage> {
     );
   }
 
+  List<AttendanceHistoryReport> _filterReports(List<AttendanceHistoryReport> reports) {
+    if (_query.isEmpty) return reports;
+    return reports.where((r) {
+      return r.reportName.toLowerCase().contains(_query) ||
+          r.periodLabel.toLowerCase().contains(_query) ||
+          _dateFmt.format(r.checkDate).contains(_query);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,98 +85,115 @@ class _ArchivesPageState extends State<ArchivesPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualiser',
-            onPressed: _fetchReports,
+            onPressed: () => context.read<ArchivesBloc>().add(LoadArchives()),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // ── Search Bar ──────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Rechercher par nom, période ou date (ex: 15/03)…',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _applyFilter();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: colorScheme.surfaceContainerHighest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-
-          // ── Content ─────────────────────────────────────────────
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.error_outline,
-                            color: colorScheme.error, size: 48),
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: colorScheme.error)),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                            onPressed: _fetchReports,
-                            child: const Text('Réessayer')),
-                      ],
-                    ),
-                  )
-                : _filtered.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inbox_outlined,
-                            size: 56, color: colorScheme.outline),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Aucun rapport trouvé.',
-                          style: theme.textTheme.bodyLarge
-                              ?.copyWith(color: colorScheme.outline),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _fetchReports,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: _filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (ctx, i) {
-                        final report = _filtered[i];
-                        return _ReportCard(
-                          report: report,
-                          dateFmt: _dateFmt,
-                          onOpenPdf: () => _openPdf(report.pdfUrl),
-                          onDetails: () => _showDetails(report),
-                        );
-                      },
+      body: BlocBuilder<ArchivesBloc, ArchivesState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              // ── Search Bar ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher par nom, période ou date (ex: 15/03)…',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-          ),
-        ],
+                ),
+              ),
+
+              // ── Content ─────────────────────────────────────────────
+              Expanded(
+                child: _buildContent(state),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildContent(ArchivesState state) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    if (state is ArchivesLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state is ArchivesError) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, color: colorScheme.error, size: 48),
+            const SizedBox(height: 12),
+            Text(state.message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.error)),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => context.read<ArchivesBloc>().add(LoadArchives()),
+              child: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state is ArchivesLoaded) {
+      final filtered = _filterReports(state.reports);
+      if (filtered.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 56, color: colorScheme.outline),
+              const SizedBox(height: 12),
+              Text(
+                'Aucun rapport trouvé.',
+                style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return RefreshIndicator(
+        onRefresh: () async => context.read<ArchivesBloc>().add(LoadArchives()),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (ctx, i) {
+            final report = filtered[i];
+            return _ReportCard(
+              report: report,
+              dateFmt: _dateFmt,
+              onOpenPdf: () => _openPdf(report.pdfUrl),
+              onDetails: () => _showDetails(report),
+            );
+          },
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
@@ -238,8 +231,7 @@ class _ReportCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: isLycee
                         ? Colors.indigo.withValues(alpha: 0.15)
@@ -257,11 +249,8 @@ class _ReportCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    report.periodLabel.isNotEmpty
-                        ? report.periodLabel
-                        : report.reportName,
-                    style: textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    report.periodLabel.isNotEmpty ? report.periodLabel : report.reportName,
+                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -272,21 +261,18 @@ class _ReportCard extends StatelessWidget {
             // Date row
             Row(
               children: [
-                Icon(Icons.calendar_today_outlined,
-                    size: 14, color: colorScheme.outline),
+                Icon(Icons.calendar_today_outlined, size: 14, color: colorScheme.outline),
                 const SizedBox(width: 4),
                 Text(
                   dateFmt.format(report.checkDate),
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.outline),
+                  style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
                 ),
                 const SizedBox(width: 16),
                 Icon(Icons.people_outline, size: 14, color: colorScheme.outline),
                 const SizedBox(width: 4),
                 Text(
                   '${report.reportData.length} élèves',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.outline),
+                  style: textTheme.bodySmall?.copyWith(color: colorScheme.outline),
                 ),
               ],
             ),
